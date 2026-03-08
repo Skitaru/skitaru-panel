@@ -254,7 +254,7 @@ select option{background:var(--s2)}
     <div id="slist"><div style="padding:13px 14px;color:var(--dim);font-size:11px"><span class="spin"></span> Lade...</div></div>
     <div id="sfooter">
       <span id="sfoot">—</span>
-      <button class="logbtn" onclick="doLogout()">Abmelden ⏎</button>
+      <button class="logbtn" onclick="openPwModal()" style="color:var(--mid)">🔑 PW</button> <button class="logbtn" onclick="doLogout()">Abmelden ⏎</button>
     </div>
   </aside>
 
@@ -389,6 +389,22 @@ select option{background:var(--s2)}
     <div id="editor-footer">
       <button class="btn bd2" onclick="editorClose()">Schließen</button>
       <button class="btn bg"  onclick="editorSave()">💾 Speichern</button>
+    </div>
+  </div>
+</div>
+
+
+<!-- Password Change Modal -->
+<div id="pwmodal" onclick="if(event.target===this)closePwModal()" style="position:fixed;inset:0;background:rgba(0,0,0,.8);z-index:400;display:none;align-items:center;justify-content:center">
+  <div style="background:var(--s1);border:1px solid var(--border2);padding:28px;width:320px">
+    <div style="font-family:var(--px);font-size:9px;color:var(--green);margin-bottom:20px">⚙ PASSWORT ÄNDERN</div>
+    <div class="lfield"><label>Aktuelles Passwort</label><input type="password" id="pw-cur" autocomplete="current-password"></div>
+    <div class="lfield"><label>Neues Passwort</label><input type="password" id="pw-new" autocomplete="new-password"></div>
+    <div class="lfield"><label>Passwort bestätigen</label><input type="password" id="pw-new2" autocomplete="new-password"></div>
+    <div class="lerr" id="pw-err"></div>
+    <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:4px">
+      <button class="btn bd2" onclick="closePwModal()">Abbrechen</button>
+      <button class="btn bg" onclick="changePw()">Speichern</button>
     </div>
   </div>
 </div>
@@ -598,9 +614,10 @@ function appendLog(text, cls) {
   const out = document.getElementById('cout');
   const lines = text.split('\n');
   lines.forEach((line, i) => {
-    if (!line && i === lines.length - 1) return;
+    const cleaned = cleanLogLine(line);
+    if (!cleaned) return; // skip blank or control-only lines
     const d = document.createElement('div');
-    d.className = 'll ' + (cls !== undefined ? cls : autoClass(line));
+    d.className = 'll ' + (cls !== undefined ? cls : autoClass(cleaned));
     d.innerHTML = ansiToHtml(line);
     out.appendChild(d);
   });
@@ -616,8 +633,23 @@ function autoClass(l) {
   return '';
 }
 
+function cleanLogLine(text) {
+  // Strip all ESC sequences that are NOT color codes (cursor movement, erase, etc.)
+  return text
+    .replace(/\x1b\[K/g, '')           // erase to end of line
+    .replace(/\x1b\[\?[\d;]*[a-zA-Z]/g, '') // private mode sequences
+    .replace(/\x1b[=>]/g, '')           // alt keypad modes
+    .replace(/\x1b\[\d*[ABCDEFGJKST]/g, '') // cursor movement / scroll
+    .replace(/\x1b\[\d*;\d*[Hf]/g, '')  // cursor position
+    .replace(/\x1b\[[\d;]*m/g, m => m) // keep color codes (handled below)
+    .replace(/\r/g, '')                 // carriage return
+    .replace(/^>\.\.\. */g, '')        // docker progress prefix
+    .trim();
+}
+
 function ansiToHtml(text) {
-  let s = text.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+  let s = cleanLogLine(text);
+  s = s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
   s = s.replace(/\x1b\[0?m/g,'</span>');
   s = s.replace(/\x1b\[(\d+)(?:;\d+)*m/g,(_,c)=>`<span class="a${c}">`);
   s = s.replace(/\x1b\[[^m]*m/g,'');
@@ -942,6 +974,34 @@ function notify(msg, type='g') {
   const el = document.getElementById('notif');
   el.textContent = msg; el.className = `on ${type}`;
   clearTimeout(nt); nt = setTimeout(()=>el.className='', 3000);
+}
+
+// ── Password Change ───────────────────────────────────────────
+function openPwModal() {
+  document.getElementById('pw-cur').value = '';
+  document.getElementById('pw-new').value = '';
+  document.getElementById('pw-new2').value = '';
+  document.getElementById('pw-err').textContent = '';
+  document.getElementById('pwmodal').style.display = 'flex';
+}
+function closePwModal() {
+  document.getElementById('pwmodal').style.display = 'none';
+}
+async function changePw() {
+  const cur  = document.getElementById('pw-cur').value;
+  const nw   = document.getElementById('pw-new').value;
+  const nw2  = document.getElementById('pw-new2').value;
+  const err  = document.getElementById('pw-err');
+  err.textContent = '';
+  if (!cur || !nw || !nw2) { err.textContent = 'Alle Felder ausfüllen.'; return; }
+  if (nw !== nw2) { err.textContent = 'Passwörter stimmen nicht überein.'; return; }
+  if (nw.length < 6) { err.textContent = 'Mindestens 6 Zeichen.'; return; }
+  try {
+    await api('/api/change-password', 'POST', { currentPassword: cur, newPassword: nw });
+    closePwModal();
+    notify('Passwort geändert – bitte neu anmelden', 'g');
+    setTimeout(() => { localStorage.removeItem('sk_token'); TOKEN = ''; location.reload(); }, 1800);
+  } catch(e) { err.textContent = e.message; }
 }
 </script>
 </body>
