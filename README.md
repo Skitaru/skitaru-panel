@@ -22,7 +22,7 @@ apt-get update -y && apt-get install -y curl
 ```
 
 ```bash
-bash <(curl -fsSL https://raw.githubusercontent.com/DEIN_USER/skitaru-panel/main/install.sh)
+bash <(curl -fsSL https://raw.githubusercontent.com/Skitaru/skitaru-panel/main/install.sh)
 ```
 
 ## Features
