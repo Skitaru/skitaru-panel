@@ -27,7 +27,7 @@ const wss    = new WebSocketServer({ server });
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: false }));
 
-// -- Sessions --------------------------------------------------
+// ── Sessions ──────────────────────────────────────────────────
 const sessions = new Map();
 
 function hashPassword(pw, salt) {
@@ -46,7 +46,7 @@ function authMw(req, res, next) {
   res.status(401).json({ error: 'Unauthorized' });
 }
 
-// -- Multer ----------------------------------------------------
+// ── Multer ────────────────────────────────────────────────────
 const upload = multer({
   storage: multer.diskStorage({
     destination: (req, file, cb) => {
@@ -66,7 +66,7 @@ function safeServerPath(serverName, subPath) {
   return target.startsWith(base) ? target : null;
 }
 
-// -- Helpers ---------------------------------------------------
+// ── Helpers ───────────────────────────────────────────────────
 function run(cmd) {
   return new Promise((res, rej) =>
     exec(cmd, { maxBuffer: 10 * 1024 * 1024 }, (err, out, err2) =>
@@ -98,7 +98,7 @@ function downloadFile(fileUrl, dest, onProgress) {
   });
 }
 
-// -- Port Check ------------------------------------------------
+// ── Port Check ────────────────────────────────────────────────
 function isPortFree(port) {
   return new Promise(resolve => {
     const s = net.createServer();
@@ -119,7 +119,7 @@ async function findFreePort(start) {
   return port;
 }
 
-// -- Docker ---------------------------------------------------
+// ── Docker ───────────────────────────────────────────────────
 async function listContainers() {
   try {
     const out = await run(`docker ps -a --format '{"id":"{{.ID}}","name":"{{.Names}}","status":"{{.Status}}","image":"{{.Image}}","ports":"{{.Ports}}","created":"{{.RunningFor}}"}'`);
@@ -134,7 +134,7 @@ async function containerStats(name) {
   } catch { return null; }
 }
 
-// -- RCON -----------------------------------------------------
+// ── RCON ─────────────────────────────────────────────────────
 function rconSend(host, port, password, command) {
   return new Promise((resolve, reject) => {
     const socket = net.createConnection(port, host);
@@ -171,10 +171,16 @@ function rconSend(host, port, password, command) {
   });
 }
 
-// -- Static ----------------------------------------------------
-app.use(express.static(path.join(__dirname, 'public')));
+// ── Static ────────────────────────────────────────────────────
+app.use(express.static(path.join(__dirname, 'public'), {
+  setHeaders: (res, filePath) => {
+    if (filePath.endsWith('.html')) {
+      res.setHeader('Content-Type', 'text/html; charset=utf-8');
+    }
+  }
+}));
 
-// -- System ----------------------------------------------------
+// ── System ────────────────────────────────────────────────────
 app.get('/api/system', authMw, async (_req, res) => {
   try {
     const out = await run("grep MemTotal /proc/meminfo");
@@ -183,7 +189,7 @@ app.get('/api/system', authMw, async (_req, res) => {
   } catch { res.json({ ramGB: 64 }); }
 });
 
-// -- Auth ------------------------------------------------------
+// ── Auth ──────────────────────────────────────────────────────
 app.post('/api/login', (req, res) => {
   const { username, password } = req.body;
   if (!username || !password) return res.status(400).json({ error: 'Fehlende Felder' });
@@ -211,7 +217,7 @@ app.post('/api/change-password', authMw, (req, res) => {
   res.json({ ok: true });
 });
 
-// -- Containers ------------------------------------------------
+// ── Containers ────────────────────────────────────────────────
 app.get('/api/containers', authMw, async (_req, res) => res.json(await listContainers()));
 app.get('/api/containers/:name/stats', authMw, async (req, res) => res.json(await containerStats(req.params.name) || {}));
 
@@ -223,7 +229,7 @@ app.post('/api/containers/:name/command', authMw, async (req, res) => {
   // Strip leading slash if present (players habit of typing /say etc.)
   if (command.startsWith('/')) command = command.slice(1);
 
-  // Send directly to Java process stdin via docker exec ? /proc/1/fd/0
+  // Send directly to Java process stdin via docker exec → /proc/1/fd/0
   // This avoids RCON entirely – output appears naturally in the log stream
   try {
     await new Promise((resolve, reject) => {
@@ -262,14 +268,14 @@ app.delete('/api/containers/:name', authMw, async (req, res) => {
 });
 
 
-// -- Server Info -----------------------------------------------
+// ── Server Info ───────────────────────────────────────────────
 app.get('/api/servers/:name/info', authMw, (req, res) => {
   const p = `/opt/${req.params.name}/panel.json`;
   if (!fs.existsSync(p)) return res.status(404).json({});
   res.json(JSON.parse(fs.readFileSync(p, 'utf8')));
 });
 
-// -- JVM Flags -------------------------------------------------
+// ── JVM Flags ─────────────────────────────────────────────────
 app.post('/api/servers/:name/flags', authMw, async (req, res) => {
   const { name } = req.params;
   if (!/^[a-z0-9-]+$/.test(name)) return res.status(400).json({ error: 'Ungültiger Name' });
@@ -302,7 +308,7 @@ CMD ["sh", "-c", "exec java $JVM_OPTS -jar /server/paper.jar --nogui"]
 `;
     fs.writeFileSync(`${serverDir}/Dockerfile`, dockerfile);
 
-    // Stop ? rebuild ? start
+    // Stop → rebuild → start
     await run(`docker stop -t 15 ${name}`).catch(() => {});
     await new Promise((resolve, reject) => {
       const proc = spawn('docker', ['compose', 'build', '--progress=plain'], { cwd: serverDir });
@@ -317,7 +323,7 @@ CMD ["sh", "-c", "exec java $JVM_OPTS -jar /server/paper.jar --nogui"]
   } catch(e) { res.status(500).json({ error: String(e) }); }
 });
 
-// -- Files -----------------------------------------------------
+// ── Files ─────────────────────────────────────────────────────
 app.get('/api/files/:name', authMw, (req, res) => {
   const dir = safeServerPath(req.params.name, req.query.dir || '');
   if (!dir) return res.status(400).json({ error: 'Ungültiger Pfad' });
@@ -380,7 +386,7 @@ app.post('/api/files/:name/mkdir', authMw, (req, res) => {
   catch(e) { res.status(500).json({ error: String(e) }); }
 });
 
-// -- Log Download ----------------------------------------------
+// ── Log Download ──────────────────────────────────────────────
 app.get('/api/containers/:name/logs/download', authMw, async (req, res) => {
   const { name } = req.params;
   const lines = parseInt(req.query.lines) || 5000;
@@ -393,7 +399,7 @@ app.get('/api/containers/:name/logs/download', authMw, async (req, res) => {
   req.on('close', () => proc.kill());
 });
 
-// -- Backups ---------------------------------------------------
+// ── Backups ───────────────────────────────────────────────────
 app.get('/api/servers/:name/backups', authMw, (req, res) => {
   const dir = `/opt/${req.params.name}/backups`;
   if (!fs.existsSync(dir)) return res.json([]);
@@ -464,7 +470,7 @@ app.get('/api/servers/:name/backup/download', authMw, (req, res) => {
   res.sendFile(fp);
 });
 
-// -- Paper Versions --------------------------------------------
+// ── Paper Versions ────────────────────────────────────────────
 app.get('/api/paper/versions', authMw, async (_req, res) => {
   try {
     const data = await fetchJson('https://api.papermc.io/v2/projects/paper');
@@ -472,7 +478,7 @@ app.get('/api/paper/versions', authMw, async (_req, res) => {
   } catch(e) { res.status(500).json({ error: String(e) }); }
 });
 
-// -- WebSocket -------------------------------------------------
+// ── WebSocket ─────────────────────────────────────────────────
 wss.on('connection', (ws, req) => {
   const parsed = url.parse(req.url, true);
   const token  = parsed.query._t;
@@ -487,7 +493,7 @@ function handleLogs(ws, name) {
   const proc = spawn('docker', ['logs', '-f', '--tail', '400', name]);
   proc.stdout.on('data', d => send(d.toString()));
   proc.stderr.on('data', d => send(d.toString()));
-  proc.on('close', () => ws.readyState === 1 && ws.send(JSON.stringify({ type: 'log', data: '\x1b[33m? Log-Stream beendet.\x1b[0m\n' })));
+  proc.on('close', () => ws.readyState === 1 && ws.send(JSON.stringify({ type: 'log', data: '\x1b[33m► Log-Stream beendet.\x1b[0m\n' })));
   ws.on('close', () => proc.kill());
   ws.on('error', () => proc.kill());
 }
@@ -507,9 +513,9 @@ async function buildServer(config, log) {
   name = (name || 'minecraft-server').toLowerCase().replace(/[^a-z0-9-]/g, '-').replace(/^-+|-+$/g, '');
 
   const requestedPort = parseInt(port) || 25565;
-  log(`? Prüfe Port ${requestedPort}...`);
+  log(`► Prüfe Port ${requestedPort}...`);
   port = await findFreePort(requestedPort);
-  if (port !== requestedPort) log(`  Port ${requestedPort} belegt ? verwende Port ${port}.`);
+  if (port !== requestedPort) log(`  Port ${requestedPort} belegt → verwende Port ${port}.`);
   else log(`  Port ${port} ist frei.`);
 
   const rconPort  = await findFreePort(port + 10);
@@ -518,7 +524,7 @@ async function buildServer(config, log) {
 
   if (fs.existsSync(serverDir)) throw new Error(`Server "${name}" existiert bereits`);
 
-  log(`? Suche Build für Paper ${version}...`);
+  log(`► Suche Build für Paper ${version}...`);
   const buildData   = await fetchJson(`https://api.papermc.io/v2/projects/paper/versions/${version}/builds`);
   const builds      = buildData.builds;
   if (!builds?.length) throw new Error(`Kein Build für ${version}`);
@@ -527,10 +533,10 @@ async function buildServer(config, log) {
   const dlUrl       = `https://api.papermc.io/v2/projects/paper/versions/${version}/builds/${latestBuild}/downloads/${jarName}`;
   log(`  Build ${latestBuild} gefunden.`);
 
-  log(`? Erstelle Verzeichnisse...`);
+  log(`► Erstelle Verzeichnisse...`);
   fs.mkdirSync(dataDir, { recursive: true });
 
-  log(`? Lade paper.jar herunter...`);
+  log(`► Lade paper.jar herunter...`);
   const jarPath = `${dataDir}/paper.jar`;
   await downloadFile(dlUrl, jarPath, pct => log(`  Download ${pct}%`, 'progress'));
   try { fs.chownSync(dataDir, 1001, 1001); fs.chownSync(jarPath, 1001, 1001); } catch {}
@@ -588,7 +594,7 @@ CMD ["sh", "-c", "exec java $JVM_OPTS -jar /server/paper.jar --nogui"]
     stop_grace_period: 30s
 `);
 
-  log(`? Baue Docker Image...`);
+  log(`► Baue Docker Image...`);
   await new Promise((resolve, reject) => {
     const proc = spawn('docker', ['compose', 'build', '--progress=plain'], { cwd: serverDir });
     proc.stdout.on('data', d => log(d.toString().trimEnd()));
@@ -596,7 +602,7 @@ CMD ["sh", "-c", "exec java $JVM_OPTS -jar /server/paper.jar --nogui"]
     proc.on('close', code => code === 0 ? resolve() : reject(new Error(`Build fehlgeschlagen (code ${code})`)));
   });
 
-  log(`? Starte Container...`);
+  log(`► Starte Container...`);
   await new Promise((resolve, reject) => {
     const proc = spawn('docker', ['compose', 'up', '-d'], { cwd: serverDir });
     proc.stdout.on('data', d => log(d.toString().trimEnd()));
@@ -604,7 +610,7 @@ CMD ["sh", "-c", "exec java $JVM_OPTS -jar /server/paper.jar --nogui"]
     proc.on('close', code => code === 0 ? resolve() : reject(new Error(`Start fehlgeschlagen (code ${code})`)));
   });
 
-  log(`? Server "${name}" läuft auf Port ${port}!`, 'success');
+  log(`✔ Server "${name}" läuft auf Port ${port}!`, 'success');
 }
 
 server.listen(PORT, '0.0.0.0', () => console.log(`\x1b[32m[Skitaru Panel]\x1b[0m http://0.0.0.0:${PORT}`));
