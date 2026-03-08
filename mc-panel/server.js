@@ -215,6 +215,32 @@ app.post('/api/change-password', authMw, (req, res) => {
 app.get('/api/containers', authMw, async (_req, res) => res.json(await listContainers()));
 app.get('/api/containers/:name/stats', authMw, async (req, res) => res.json(await containerStats(req.params.name) || {}));
 
+app.post('/api/containers/:name/command', authMw, async (req, res) => {
+  const { name } = req.params;
+  let { command } = req.body;
+  if (!command) return res.status(400).json({ error: 'Kein Befehl' });
+
+  // Strip leading slash if present (players habit of typing /say etc.)
+  if (command.startsWith('/')) command = command.slice(1);
+
+  // Send directly to Java process stdin via docker exec → /proc/1/fd/0
+  // This avoids RCON entirely – output appears naturally in the log stream
+  try {
+    await new Promise((resolve, reject) => {
+      // Sanitize: escape single quotes for the shell
+      const safeCmd = command.replace(/'/g, `'\''`);
+      const proc = spawn('docker', [
+        'exec', '-i', name,
+        'sh', '-c', `printf '%s\n' '${safeCmd}' > /proc/1/fd/0`
+      ]);
+      let err = '';
+      proc.stderr.on('data', d => err += d.toString());
+      proc.on('close', code => code === 0 ? resolve() : reject(new Error(err.trim() || `exit ${code}`)));
+    });
+    res.json({ ok: true, response: '' }); // output shows up in log stream
+  } catch(e) { res.status(500).json({ error: e.message }); }
+});
+
 app.post('/api/containers/:name/:action', authMw, async (req, res) => {
   const { name, action } = req.params;
   if (!['start','stop','restart'].includes(action)) return res.status(400).json({ error: 'Ungültig' });
@@ -235,18 +261,6 @@ app.delete('/api/containers/:name', authMw, async (req, res) => {
   } catch(e) { res.status(500).json({ error: String(e) }); }
 });
 
-app.post('/api/containers/:name/command', authMw, async (req, res) => {
-  const { name } = req.params;
-  const { command } = req.body;
-  if (!command) return res.status(400).json({ error: 'Kein Befehl' });
-  const cfgPath = `/opt/${name}/rcon.json`;
-  if (!fs.existsSync(cfgPath)) return res.status(404).json({ error: 'RCON Konfig fehlt – Server manuell erstellt?' });
-  const { password, rconPort } = JSON.parse(fs.readFileSync(cfgPath, 'utf8'));
-  try {
-    const response = await rconSend('127.0.0.1', rconPort, password, command);
-    res.json({ ok: true, response });
-  } catch(e) { res.status(500).json({ error: e.message }); }
-});
 
 // ── Server Info ───────────────────────────────────────────────
 app.get('/api/servers/:name/info', authMw, (req, res) => {
@@ -322,7 +336,7 @@ app.post('/api/files/:name/mkdir', authMw, (req, res) => {
 app.get('/api/paper/versions', authMw, async (_req, res) => {
   try {
     const data = await fetchJson('https://api.papermc.io/v2/projects/paper');
-    res.json([...data.versions].reverse()); // ALL versions, newest first
+    res.json([...data.versions].reverse());
   } catch(e) { res.status(500).json({ error: String(e) }); }
 });
 
@@ -338,11 +352,10 @@ wss.on('connection', (ws, req) => {
 
 function handleLogs(ws, name) {
   const send = d => ws.readyState === 1 && ws.send(JSON.stringify({ type: 'log', data: d }));
-  send(`\x1b[32m► Verbinde mit "${name}"...\x1b[0m\n`);
   const proc = spawn('docker', ['logs', '-f', '--tail', '400', name]);
   proc.stdout.on('data', d => send(d.toString()));
   proc.stderr.on('data', d => send(d.toString()));
-  proc.on('close', () => ws.readyState === 1 && ws.send(JSON.stringify({ type: 'log', data: '\x1b[33m► Stream beendet.\x1b[0m\n' })));
+  proc.on('close', () => ws.readyState === 1 && ws.send(JSON.stringify({ type: 'log', data: '\x1b[33m► Log-Stream beendet.\x1b[0m\n' })));
   ws.on('close', () => proc.kill());
   ws.on('error', () => proc.kill());
 }
@@ -430,6 +443,7 @@ CMD ["sh", "-c", "exec java $JVM_OPTS -jar /server/paper.jar --nogui"]
     build: { context: ., dockerfile: Dockerfile }
     container_name: ${name}
     restart: unless-stopped
+    stdin_open: true
     ports:
       - "${port}:${port}/tcp"
       - "${port}:${port}/udp"
