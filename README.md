@@ -15,11 +15,15 @@ skitaru-panel/
 └── README.md
 ```
 
-## One-Liner Installation
+## One-Liner Installation (Eigentlich Two-Liner)
+
+1.
 
 ```bash
 apt-get update -y && apt-get install -y curl
 ```
+
+2.
 
 ```bash
 bash <(curl -fsSL https://raw.githubusercontent.com/Skitaru/skitaru-panel/main/install.sh)
