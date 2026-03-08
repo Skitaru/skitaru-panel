@@ -6,229 +6,328 @@
 <title>Skitaru Panel</title>
 <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&family=JetBrains+Mono:wght@300;400;500;700&display=swap" rel="stylesheet">
 <style>
-*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
-:root{
-  --bg:#060606;--s1:#0c0c0c;--s2:#111;--s3:#171717;--s4:#1e1e1e;
-  --border:#1a1a1a;--border2:#252525;
-  --green:#4ade80;--g2:#22c55e;--gd:#021508;--gm:#14532d;
-  --red:#f87171;--rd:#150202;
-  --yellow:#fbbf24;--yd:#150e00;
-  --blue:#60a5fa;--bd:#020b1a;
-  --text:#d0d0d0;--dim:#3a3a3a;--mid:#777;
-  --px:'Press Start 2P',monospace;
-  --mono:'JetBrains Mono',monospace;
+*,*::before,*::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  --bg:      #060606;
+  --s1:      #0c0c0c;
+  --s2:      #111111;
+  --s3:      #171717;
+  --border:  #1a1a1a;
+  --border2: #252525;
+  --green:   #4ade80;
+  --g2:      #22c55e;
+  --gd:      #021508;
+  --gm:      #14532d;
+  --red:     #f87171;
+  --rd:      #150202;
+  --yellow:  #fbbf24;
+  --yd:      #150e00;
+  --blue:    #60a5fa;
+  --bd:      #020b1a;
+  --text:    #d0d0d0;
+  --dim:     #3a3a3a;
+  --mid:     #777777;
+  --px:      'Press Start 2P', monospace;
+  --mono:    'JetBrains Mono', monospace;
+  --ease:    cubic-bezier(.4,0,.2,1);
 }
-html,body{height:100%;background:var(--bg);color:var(--text);font-family:var(--mono);font-size:13px;overflow:hidden}
-::-webkit-scrollbar{width:3px;height:3px}
-::-webkit-scrollbar-track{background:transparent}
-::-webkit-scrollbar-thumb{background:var(--border2)}
-::-webkit-scrollbar-thumb:hover{background:var(--gm)}
-::selection{background:var(--gm);color:var(--green)}
 
-/* ── Login ─────────────────────────────────────────────────── */
-#login{
-  position:fixed;inset:0;display:flex;align-items:center;justify-content:center;
-  background:var(--bg);z-index:1000;
-  background-image:linear-gradient(var(--border) 1px,transparent 1px),linear-gradient(90deg,var(--border) 1px,transparent 1px);
-  background-size:32px 32px;
+html, body { height: 100%; background: var(--bg); color: var(--text); font-family: var(--mono); font-size: 13px; overflow: hidden; }
+
+::-webkit-scrollbar { width: 3px; height: 3px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 2px; }
+::-webkit-scrollbar-thumb:hover { background: var(--gm); }
+::selection { background: var(--gm); color: var(--green); }
+
+/* ─── Page Loader ──────────────────────────────────────────── */
+#loader {
+  position: fixed; inset: 0; background: var(--bg); z-index: 9999;
+  display: flex; align-items: center; justify-content: center; flex-direction: column; gap: 20px;
+  transition: opacity .4s var(--ease);
 }
-#login::before{content:'';position:absolute;inset:0;background:radial-gradient(ellipse 65% 55% at 50% 50%,transparent,var(--bg) 75%)}
-.lbox{position:relative;z-index:1;background:var(--s1);border:1px solid var(--border2);padding:36px;width:340px}
-.ltitle{font-family:var(--px);font-size:16px;color:var(--green);text-align:center;margin-bottom:4px;text-shadow:0 0 18px rgba(74,222,128,.5);letter-spacing:2px}
-.lsub{text-align:center;font-size:9px;color:var(--dim);letter-spacing:3px;text-transform:uppercase;margin-bottom:28px}
-.lfield{margin-bottom:12px}
-.lfield label{display:block;font-size:10px;color:var(--mid);letter-spacing:1px;text-transform:uppercase;margin-bottom:5px}
-.lfield input{width:100%;background:var(--s3);border:1px solid var(--border2);color:var(--text);font-family:var(--mono);font-size:13px;padding:9px 11px;outline:none;transition:border-color .15s}
-.lfield input:focus{border-color:var(--gm)}
-.lerr{font-size:11px;color:var(--red);min-height:16px;margin-bottom:10px}
-.lbtn{width:100%;padding:11px;background:var(--gd);border:1px solid var(--gm);color:var(--green);font-family:var(--px);font-size:8px;letter-spacing:1px;cursor:pointer;transition:all .15s}
-.lbtn:hover{background:var(--gm);border-color:var(--green)}
-.lbtn:disabled{opacity:.3;cursor:not-allowed}
+#loader.fade { opacity: 0; pointer-events: none; }
+.loader-logo { font-family: var(--px); font-size: 14px; color: var(--green); letter-spacing: 2px; text-shadow: 0 0 20px rgba(74,222,128,.5); }
+.loader-bar { width: 120px; height: 2px; background: var(--border2); overflow: hidden; }
+.loader-bar-inner { height: 100%; background: var(--green); animation: loader-slide 1.2s var(--ease) infinite; }
+@keyframes loader-slide { 0% { width: 0; margin-left: 0; } 50% { width: 80px; } 100% { width: 0; margin-left: 120px; } }
 
-/* ── App ───────────────────────────────────────────────────── */
-#app{display:flex;height:100vh;width:100vw;opacity:0;transition:opacity .3s}
-#app.on{opacity:1}
+/* ─── Login ────────────────────────────────────────────────── */
+#login {
+  position: fixed; inset: 0; display: none; align-items: center; justify-content: center;
+  background: var(--bg); z-index: 1000;
+  background-image: linear-gradient(var(--border) 1px, transparent 1px), linear-gradient(90deg, var(--border) 1px, transparent 1px);
+  background-size: 32px 32px;
+  animation: fade-in .3s var(--ease);
+}
+#login.on { display: flex; }
+#login::before { content: ''; position: absolute; inset: 0; background: radial-gradient(ellipse 65% 55% at 50% 50%, transparent, var(--bg) 75%); }
 
-/* ── Sidebar ───────────────────────────────────────────────── */
-#sidebar{width:230px;min-width:230px;background:var(--s1);border-right:1px solid var(--border);display:flex;flex-direction:column;overflow:hidden}
-#logo{padding:16px 14px 12px;border-bottom:1px solid var(--border)}
-.ltxt{font-family:var(--px);font-size:13px;color:var(--green);letter-spacing:1px;line-height:1.8;text-shadow:0 0 14px rgba(74,222,128,.4)}
-.lsub2{font-size:9px;color:var(--dim);margin-top:3px;letter-spacing:2px;text-transform:uppercase}
-#btn-new{margin:9px;padding:8px 11px;background:var(--gd);border:1px solid var(--gm);color:var(--green);font-family:var(--mono);font-size:11px;font-weight:700;letter-spacing:.5px;text-transform:uppercase;cursor:pointer;transition:all .15s;display:flex;align-items:center;gap:7px}
-#btn-new:hover{background:var(--gm);border-color:var(--green)}
-#slbl{font-size:9px;letter-spacing:3px;color:var(--dim);text-transform:uppercase;padding:6px 14px 3px}
-#slist{flex:1;overflow-y:auto;padding:2px 0}
-.si{padding:8px 12px;cursor:pointer;border-left:2px solid transparent;transition:background .08s,border-color .08s;display:flex;align-items:center;gap:8px;user-select:none}
-.si:hover{background:var(--s2)}
-.si.active{background:var(--s2);border-left-color:var(--green)}
-.sdot{width:6px;height:6px;border-radius:50%;flex-shrink:0}
-.sdot.running{background:var(--green);box-shadow:0 0 5px var(--g2);animation:dp 2.5s infinite}
-.sdot.stopped{background:var(--red)}
-.sdot.restarting{background:var(--yellow);animation:dp 1s infinite}
-.sdot.unknown{background:var(--dim)}
-@keyframes dp{0%,100%{opacity:1}50%{opacity:.3}}
-.sinfo{flex:1;min-width:0}
-.sname{font-size:11px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.smeta{font-size:10px;color:var(--dim);margin-top:1px}
-#sfooter{padding:9px 12px;border-top:1px solid var(--border);font-size:10px;color:var(--dim);display:flex;justify-content:space-between;align-items:center;flex-shrink:0}
-.logbtn{font-size:10px;color:var(--dim);background:none;border:none;cursor:pointer;font-family:var(--mono);transition:color .15s}
-.logbtn:hover{color:var(--red)}
+.lbox {
+  position: relative; z-index: 1; background: var(--s1); border: 1px solid var(--border2);
+  padding: 36px; width: 340px;
+  animation: slide-up .35s var(--ease);
+}
+.ltitle { font-family: var(--px); font-size: 16px; color: var(--green); text-align: center; margin-bottom: 4px; text-shadow: 0 0 20px rgba(74,222,128,.5); letter-spacing: 2px; }
+.lsub   { text-align: center; font-size: 9px; color: var(--dim); letter-spacing: 3px; text-transform: uppercase; margin-bottom: 28px; }
+.lfield { margin-bottom: 12px; }
+.lfield label { display: block; font-size: 10px; color: var(--mid); letter-spacing: 1px; text-transform: uppercase; margin-bottom: 5px; }
+.lfield input { width: 100%; background: var(--s3); border: 1px solid var(--border2); color: var(--text); font-family: var(--mono); font-size: 13px; padding: 9px 11px; outline: none; transition: border-color .15s; }
+.lfield input:focus { border-color: var(--gm); }
+.lerr  { font-size: 11px; color: var(--red); min-height: 16px; margin-bottom: 10px; transition: opacity .2s; }
+.lbtn  { width: 100%; padding: 11px; background: var(--gd); border: 1px solid var(--gm); color: var(--green); font-family: var(--px); font-size: 8px; letter-spacing: 1px; cursor: pointer; transition: all .15s; }
+.lbtn:hover { background: var(--gm); border-color: var(--green); }
+.lbtn:disabled { opacity: .3; cursor: not-allowed; }
 
-/* ── Main ──────────────────────────────────────────────────── */
-#main{flex:1;display:flex;flex-direction:column;overflow:hidden}
+/* ─── App ──────────────────────────────────────────────────── */
+#app { display: flex; height: 100vh; width: 100vw; opacity: 0; transition: opacity .35s var(--ease); }
+#app.on { opacity: 1; }
 
-/* ── Welcome ───────────────────────────────────────────────── */
-#vwelcome{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:24px;padding:40px}
-.wgrid{display:flex;gap:1px;background:var(--border)}
-.wcell{background:var(--bg);padding:18px 26px;text-align:center}
-.wnum{font-family:var(--px);font-size:20px;color:var(--green);margin-bottom:5px}
-.wnum.r{color:var(--red)}
-.wlbl{font-size:9px;color:var(--dim);letter-spacing:2px;text-transform:uppercase}
-.whint{font-size:11px;color:var(--dim);text-align:center;line-height:2}
-.whint b{color:var(--green);font-weight:400}
+/* ─── Sidebar ──────────────────────────────────────────────── */
+#sidebar { width: 230px; min-width: 230px; background: var(--s1); border-right: 1px solid var(--border); display: flex; flex-direction: column; overflow: hidden; }
 
-/* ── Server Header ─────────────────────────────────────────── */
-#shdr{padding:11px 16px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:9px;flex-shrink:0;background:var(--s1)}
-.hdot{width:8px;height:8px;border-radius:50%;flex-shrink:0}
-#stitle{font-family:var(--px);font-size:9px;color:var(--text);flex:1}
-.sbadge{font-size:10px;padding:3px 7px;letter-spacing:1px;text-transform:uppercase;font-weight:700}
-.sbadge.running{background:var(--gd);color:var(--green);border:1px solid var(--gm)}
-.sbadge.stopped{background:var(--rd);color:var(--red);border:1px solid #4a0909}
-.sbadge.restarting{background:var(--yd);color:var(--yellow);border:1px solid #4a3000}
-.hctrl{display:flex;gap:4px}
+#logo { padding: 16px 14px 12px; border-bottom: 1px solid var(--border); }
+.logo-title { font-family: var(--px); font-size: 13px; color: var(--green); letter-spacing: 1px; line-height: 1.8; text-shadow: 0 0 16px rgba(74,222,128,.4); }
+.logo-sub   { font-size: 9px; color: var(--dim); margin-top: 3px; letter-spacing: 2px; text-transform: uppercase; }
 
-/* ── Buttons ───────────────────────────────────────────────── */
-.btn{padding:5px 10px;font-family:var(--mono);font-size:11px;font-weight:700;letter-spacing:.5px;cursor:pointer;border:1px solid;transition:all .1s;text-transform:uppercase;white-space:nowrap}
-.bg{background:var(--gd);border-color:var(--gm);color:var(--green)}.bg:hover{background:var(--gm);border-color:var(--green)}
-.br{background:var(--rd);border-color:#4a0909;color:var(--red)}.br:hover{background:#220505;border-color:var(--red)}
-.by{background:var(--yd);border-color:#4a3000;color:var(--yellow)}.by:hover{background:#221800;border-color:var(--yellow)}
-.bd2{background:var(--s2);border-color:var(--border2);color:var(--mid)}.bd2:hover{border-color:var(--mid);color:var(--text)}
-.btn:disabled{opacity:.2;cursor:not-allowed;pointer-events:none}
+#btn-new {
+  margin: 9px; padding: 8px 11px;
+  background: var(--gd); border: 1px solid var(--gm); color: var(--green);
+  font-family: var(--mono); font-size: 11px; font-weight: 700; letter-spacing: .5px; text-transform: uppercase;
+  cursor: pointer; transition: all .15s; display: flex; align-items: center; gap: 7px;
+}
+#btn-new:hover { background: var(--gm); border-color: var(--green); }
 
-/* ── Tabs ──────────────────────────────────────────────────── */
-#tabs{display:flex;border-bottom:1px solid var(--border);background:var(--s1);flex-shrink:0}
-.tab{padding:8px 16px;font-size:10px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--dim);cursor:pointer;border-bottom:2px solid transparent;transition:all .1s;user-select:none}
-.tab:hover{color:var(--mid)}
-.tab.active{color:var(--green);border-bottom-color:var(--green)}
+#slbl  { font-size: 9px; letter-spacing: 3px; color: var(--dim); text-transform: uppercase; padding: 6px 14px 3px; }
+#slist { flex: 1; overflow-y: auto; padding: 2px 0; }
 
-/* ── Console ───────────────────────────────────────────────── */
-#tconsole{flex:1;display:flex;flex-direction:column;overflow:hidden}
-#cout{flex:1;overflow-y:auto;padding:9px 13px;font-size:12px;line-height:1.6;background:var(--bg)}
-.ll{white-space:pre-wrap;word-break:break-all}
-.ll.warn{color:var(--yellow)}.ll.error{color:var(--red)}.ll.info{color:var(--green)}.ll.dim{color:var(--dim)}
+.si {
+  padding: 8px 12px; cursor: pointer; border-left: 2px solid transparent;
+  display: flex; align-items: center; gap: 8px; user-select: none;
+  transition: background .12s var(--ease), border-color .12s var(--ease), opacity .2s;
+  animation: slide-in-left .25s var(--ease) both;
+}
+.si:hover  { background: var(--s2); }
+.si.active { background: var(--s2); border-left-color: var(--green); }
+
+@keyframes slide-in-left { from { opacity: 0; transform: translateX(-8px); } to { opacity: 1; transform: none; } }
+
+.sdot { width: 6px; height: 6px; border-radius: 50%; flex-shrink: 0; transition: background .3s, box-shadow .3s; }
+.sdot.running    { background: var(--green); box-shadow: 0 0 5px var(--g2); animation: pulse-green 2.5s infinite; }
+.sdot.stopped    { background: var(--red); }
+.sdot.restarting { background: var(--yellow); animation: pulse-yellow 1s infinite; }
+.sdot.loading    { background: var(--yellow); animation: pulse-loading .8s ease-in-out infinite; }
+.sdot.unknown    { background: var(--dim); }
+
+@keyframes pulse-green   { 0%,100% { opacity: 1; } 50% { opacity: .35; } }
+@keyframes pulse-yellow  { 0%,100% { opacity: 1; } 50% { opacity: .3; } }
+@keyframes pulse-loading { 0%,100% { transform: scale(1); opacity: .5; } 50% { transform: scale(1.5); opacity: 1; } }
+
+.sinfo  { flex: 1; min-width: 0; }
+.sname  { font-size: 11px; font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.smeta  { font-size: 10px; color: var(--dim); margin-top: 1px; transition: color .2s; }
+
+#sfooter { padding: 9px 12px; border-top: 1px solid var(--border); font-size: 10px; color: var(--dim); display: flex; justify-content: space-between; align-items: center; flex-shrink: 0; }
+.footbtn { font-size: 10px; color: var(--dim); background: none; border: none; cursor: pointer; font-family: var(--mono); transition: color .15s; padding: 0 3px; }
+.footbtn:hover { color: var(--text); }
+.footbtn.danger:hover { color: var(--red); }
+
+/* ─── Main ─────────────────────────────────────────────────── */
+#main { flex: 1; display: flex; flex-direction: column; overflow: hidden; position: relative; }
+
+/* ─── View transitions ─────────────────────────────────────── */
+.view { flex: 1; display: flex; flex-direction: column; overflow: hidden; animation: fade-in .2s var(--ease); }
+.view.hidden { display: none; }
+
+@keyframes fade-in  { from { opacity: 0; } to { opacity: 1; } }
+@keyframes slide-up { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: none; } }
+
+/* ─── Welcome ──────────────────────────────────────────────── */
+#vwelcome { align-items: center; justify-content: center; gap: 24px; padding: 40px; }
+.wgrid { display: flex; gap: 1px; background: var(--border); }
+.wcell { background: var(--bg); padding: 18px 28px; text-align: center; transition: background .15s; }
+.wcell:hover { background: var(--s1); }
+.wnum  { font-family: var(--px); font-size: 20px; color: var(--green); margin-bottom: 5px; }
+.wnum.r { color: var(--red); }
+.wlbl  { font-size: 9px; color: var(--dim); letter-spacing: 2px; text-transform: uppercase; }
+.whint { font-size: 11px; color: var(--dim); text-align: center; line-height: 2; }
+.whint b { color: var(--green); font-weight: 400; }
+
+/* ─── Server Header ────────────────────────────────────────── */
+#shdr { padding: 11px 16px; border-bottom: 1px solid var(--border); display: flex; align-items: center; gap: 9px; flex-shrink: 0; background: var(--s1); }
+.hdot  { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; transition: background .3s, box-shadow .3s; }
+#stitle { font-family: var(--px); font-size: 9px; color: var(--text); flex: 1; }
+.sbadge { font-size: 10px; padding: 3px 7px; letter-spacing: 1px; text-transform: uppercase; font-weight: 700; transition: all .2s var(--ease); }
+.sbadge.running    { background: var(--gd); color: var(--green); border: 1px solid var(--gm); }
+.sbadge.stopped    { background: var(--rd); color: var(--red); border: 1px solid #4a0909; }
+.sbadge.restarting { background: var(--yd); color: var(--yellow); border: 1px solid #4a3000; }
+.hctrl { display: flex; gap: 4px; }
+
+/* ─── Buttons ──────────────────────────────────────────────── */
+.btn { padding: 5px 10px; font-family: var(--mono); font-size: 11px; font-weight: 700; letter-spacing: .5px; cursor: pointer; border: 1px solid; transition: all .12s var(--ease); text-transform: uppercase; white-space: nowrap; }
+.bg  { background: var(--gd); border-color: var(--gm);    color: var(--green);  } .bg:hover  { background: var(--gm); border-color: var(--green); }
+.br  { background: var(--rd); border-color: #4a0909;      color: var(--red);    } .br:hover  { background: #220505; border-color: var(--red); }
+.by  { background: var(--yd); border-color: #4a3000;      color: var(--yellow); } .by:hover  { background: #221800; border-color: var(--yellow); }
+.bd2 { background: var(--s2); border-color: var(--border2); color: var(--mid);  } .bd2:hover { border-color: var(--mid); color: var(--text); }
+.btn:disabled { opacity: .2; cursor: not-allowed; pointer-events: none; }
+.btn:active:not(:disabled) { transform: scale(.97); }
+
+/* ─── Tabs ─────────────────────────────────────────────────── */
+#tabs { display: flex; border-bottom: 1px solid var(--border); background: var(--s1); flex-shrink: 0; }
+.tab { padding: 8px 16px; font-size: 10px; font-weight: 700; letter-spacing: 1px; text-transform: uppercase; color: var(--dim); cursor: pointer; border-bottom: 2px solid transparent; transition: color .12s, border-color .12s; user-select: none; }
+.tab:hover  { color: var(--mid); }
+.tab.active { color: var(--green); border-bottom-color: var(--green); }
+
+/* ─── Console ──────────────────────────────────────────────── */
+#tconsole { flex: 1; display: flex; flex-direction: column; overflow: hidden; }
+#cout { flex: 1; overflow-y: auto; padding: 9px 13px; font-size: 12px; line-height: 1.65; background: var(--bg); }
+.ll { white-space: pre-wrap; word-break: break-all; animation: fade-in .1s var(--ease); }
+.ll.warn  { color: var(--yellow); }
+.ll.error { color: var(--red); }
+.ll.info  { color: var(--green); }
+.ll.dim   { color: var(--dim); }
+
 .a30{color:#2a2a2a}.a31{color:#f87171}.a32{color:#4ade80}.a33{color:#fbbf24}
 .a34{color:#60a5fa}.a35{color:#c084fc}.a36{color:#67e8f9}.a37{color:#d0d0d0}
-.a90{color:#444}.a91{color:#fca5a5}.a92{color:#86efac}.a93{color:#fde68a}
+.a90{color:#444}   .a91{color:#fca5a5}.a92{color:#86efac}.a93{color:#fde68a}
 .a94{color:#93c5fd}.a95{color:#d8b4fe}.a96{color:#a5f3fc}.a97{color:#f5f5f5}
-#cinrow{display:flex;border-top:1px solid var(--border);background:var(--s1);flex-shrink:0}
-#cprompt{padding:8px 9px;color:var(--green);font-size:13px;font-weight:700;user-select:none}
-#cinput{flex:1;background:transparent;border:none;outline:none;color:var(--text);font-family:var(--mono);font-size:12px;padding:8px 0;caret-color:var(--green)}
-#cinput::placeholder{color:var(--dim)}
-.csend{padding:0 13px;background:transparent;border:none;border-left:1px solid var(--border);color:var(--dim);font-family:var(--mono);font-size:10px;font-weight:700;cursor:pointer;letter-spacing:1px;text-transform:uppercase;transition:all .1s}
-.csend:hover{color:var(--green);background:var(--gd)}
-.ascroll{padding:0 9px;display:flex;align-items:center;gap:4px;font-size:10px;color:var(--dim);cursor:pointer;user-select:none;border-left:1px solid var(--border)}
-.ascroll input{accent-color:var(--green);cursor:pointer}
 
-/* ── Tab Panels ────────────────────────────────────────────── */
-.tpanel{flex:1;overflow-y:auto;padding:14px;display:none;gap:10px;flex-wrap:wrap;align-content:flex-start}
-.tpanel.on{display:flex}
-.dc{background:var(--s2);border:1px solid var(--border);padding:13px;flex:1;min-width:175px}
-.dct{font-size:9px;letter-spacing:2px;text-transform:uppercase;color:var(--dim);margin-bottom:9px}
-.dr{display:flex;justify-content:space-between;align-items:center;padding:4px 0;border-bottom:1px solid var(--s3);font-size:11px}
-.dr:last-child{border-bottom:none}
-.dk{color:var(--dim)}.dv{color:var(--text);font-weight:500}
-.dv.g{color:var(--green)}
+#cinrow   { display: flex; border-top: 1px solid var(--border); background: var(--s1); flex-shrink: 0; }
+#cprompt  { padding: 8px 9px; color: var(--green); font-size: 13px; font-weight: 700; user-select: none; }
+#cinput   { flex: 1; background: transparent; border: none; outline: none; color: var(--text); font-family: var(--mono); font-size: 12px; padding: 8px 0; caret-color: var(--green); }
+#cinput::placeholder { color: var(--dim); }
+.csend    { padding: 0 13px; background: transparent; border: none; border-left: 1px solid var(--border); color: var(--dim); font-family: var(--mono); font-size: 10px; font-weight: 700; cursor: pointer; letter-spacing: 1px; text-transform: uppercase; transition: all .12s; }
+.csend:hover { color: var(--green); background: var(--gd); }
+.ascroll  { padding: 0 9px; display: flex; align-items: center; gap: 4px; font-size: 10px; color: var(--dim); cursor: pointer; user-select: none; border-left: 1px solid var(--border); }
+.ascroll input { accent-color: var(--green); cursor: pointer; }
 
-/* ── File Manager ──────────────────────────────────────────── */
-#tfiles{flex:1;display:none;flex-direction:column;overflow:hidden}
-#tfiles.on{display:flex}
-#fmtb{display:flex;align-items:center;gap:7px;padding:7px 12px;border-bottom:1px solid var(--border);background:var(--s1);flex-shrink:0;flex-wrap:wrap}
-#fmpath{flex:1;font-size:11px;color:var(--dim);overflow:hidden;white-space:nowrap;text-overflow:ellipsis;min-width:0}
-#fmpath .ps{color:var(--mid);cursor:pointer;transition:color .1s}.ps:hover{color:var(--green)}
-#fmpath .sep{color:var(--dim);margin:0 2px;cursor:default}
-#fmlist{flex:1;overflow-y:auto}
-.fmr{display:grid;grid-template-columns:20px 1fr 85px 130px 72px;align-items:center;padding:6px 13px;border-bottom:1px solid var(--border);font-size:11px;gap:7px;cursor:pointer;transition:background .08s}
-.fmr:hover{background:var(--s2)}
-.fmr.hdr{background:var(--s1);font-size:9px;letter-spacing:1px;text-transform:uppercase;color:var(--dim);cursor:default;border-bottom:1px solid var(--border2)}
-.fmr.hdr:hover{background:var(--s1)}
-.fmicon{text-align:center;font-size:13px}
-.fmname{font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.fmsize{color:var(--dim);text-align:right}
-.fmdate{color:var(--dim)}
-.fmacts{display:flex;gap:4px;justify-content:flex-end}
-.fmbtn{padding:2px 7px;font-size:10px;font-family:var(--mono);background:var(--s3);border:1px solid var(--border2);color:var(--mid);cursor:pointer;transition:all .1s;white-space:nowrap}
-.fmbtn:hover{border-color:var(--mid);color:var(--text)}
-.fmbtn.del:hover{border-color:var(--red);color:var(--red);background:var(--rd)}
-.fmbtn.dl:hover{border-color:var(--blue);color:var(--blue);background:var(--bd)}
-.fmbtn.ed:hover{border-color:var(--yellow);color:var(--yellow);background:var(--yd)}
-.fmempty{padding:36px;text-align:center;color:var(--dim);font-size:11px}
-#fmlist.dragover{outline:2px dashed var(--gm);outline-offset:-3px}
-#fmupload{display:none}
+/* ─── Details ──────────────────────────────────────────────── */
+.tpanel { flex: 1; overflow-y: auto; padding: 14px; display: none; gap: 10px; flex-wrap: wrap; align-content: flex-start; animation: fade-in .2s var(--ease); }
+.tpanel.on { display: flex; }
+.dc  { background: var(--s2); border: 1px solid var(--border); padding: 13px; flex: 1; min-width: 175px; }
+.dct { font-size: 9px; letter-spacing: 2px; text-transform: uppercase; color: var(--dim); margin-bottom: 9px; }
+.dr  { display: flex; justify-content: space-between; align-items: center; padding: 4px 0; border-bottom: 1px solid var(--s3); font-size: 11px; }
+.dr:last-child { border-bottom: none; }
+.dk { color: var(--dim); }
+.dv { color: var(--text); font-weight: 500; }
+.dv.g { color: var(--green); }
 
-/* ── Editor Modal ──────────────────────────────────────────── */
-#editor-overlay{position:fixed;inset:0;background:rgba(0,0,0,.8);z-index:300;display:none;align-items:center;justify-content:center}
-#editor-overlay.on{display:flex}
-#editor-box{background:var(--s1);border:1px solid var(--border2);display:flex;flex-direction:column;width:min(900px,90vw);height:min(650px,85vh)}
-#editor-hdr{padding:10px 14px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:10px;flex-shrink:0}
-#editor-title{font-size:11px;color:var(--mid);flex:1;font-weight:700;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-#editor-ta{flex:1;background:var(--bg);border:none;outline:none;color:var(--text);font-family:var(--mono);font-size:12px;padding:12px 14px;resize:none;line-height:1.6}
-#editor-footer{padding:8px 14px;border-top:1px solid var(--border);display:flex;justify-content:flex-end;gap:7px;flex-shrink:0}
+/* ─── File Manager ─────────────────────────────────────────── */
+#tfiles { flex: 1; display: none; flex-direction: column; overflow: hidden; animation: fade-in .2s var(--ease); }
+#tfiles.on { display: flex; }
 
-/* ── Create ────────────────────────────────────────────────── */
-#vcreate{flex:1;display:none;flex-direction:column;overflow:hidden}
-#vcreate.on{display:flex}
-#chdr{padding:11px 16px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:10px;background:var(--s1);flex-shrink:0}
-#chdr h2{font-family:var(--px);font-size:9px;color:var(--green);flex:1}
-#cbody{flex:1;display:flex;overflow:hidden}
-#cform{width:330px;min-width:330px;border-right:1px solid var(--border);overflow-y:auto;padding:14px;display:flex;flex-direction:column;gap:10px}
-#cbuild{flex:1;display:flex;flex-direction:column;overflow:hidden}
-#cbuildtitle{padding:8px 13px;font-size:9px;letter-spacing:2px;text-transform:uppercase;color:var(--dim);border-bottom:1px solid var(--border);flex-shrink:0}
-#cbuildout{flex:1;overflow-y:auto;padding:9px 13px;font-size:11px;line-height:1.7;background:var(--bg)}
-.cl{white-space:pre-wrap;word-break:break-all;color:var(--dim)}
-.cl.s{color:var(--green);font-weight:700}.cl.e{color:var(--red);font-weight:700}.cl.p{color:var(--yellow)}
+#fmtb { display: flex; align-items: center; gap: 7px; padding: 7px 12px; border-bottom: 1px solid var(--border); background: var(--s1); flex-shrink: 0; flex-wrap: wrap; }
+#fmpath { flex: 1; font-size: 11px; color: var(--dim); overflow: hidden; white-space: nowrap; text-overflow: ellipsis; min-width: 0; }
+.fmp { color: var(--mid); cursor: pointer; transition: color .12s; }
+.fmp:hover { color: var(--green); }
+.fmsep { color: var(--dim); margin: 0 2px; }
 
-/* ── Form ──────────────────────────────────────────────────── */
-.fs{border-top:1px solid var(--border);padding-top:11px}
-.fs:first-child{border-top:none;padding-top:0}
-.fst{font-size:9px;letter-spacing:2px;text-transform:uppercase;color:var(--dim);margin-bottom:9px}
-.fg{margin-bottom:9px}
-.fl{display:block;font-size:10px;color:var(--mid);margin-bottom:4px;letter-spacing:.5px;text-transform:uppercase}
-input[type=text],input[type=number],select,textarea.finput{width:100%;background:var(--s3);border:1px solid var(--border2);color:var(--text);font-family:var(--mono);font-size:12px;padding:7px 9px;outline:none;transition:border-color .15s;-webkit-appearance:none}
-input:focus,select:focus,textarea.finput:focus{border-color:var(--gm)}
-select option{background:var(--s2)}
-.frow{display:flex;gap:7px}.frow .fg{flex:1}
-.togrow{display:flex;align-items:center;justify-content:space-between;padding:4px 0}
-.toglbl{font-size:11px;color:var(--mid)}
-.tog{position:relative;width:32px;height:17px;flex-shrink:0}
-.tog input{opacity:0;width:0;height:0}
-.tsl{position:absolute;inset:0;background:var(--s3);border:1px solid var(--border2);cursor:pointer;transition:.2s}
-.tsl::before{content:'';position:absolute;width:9px;height:9px;left:3px;top:3px;background:var(--dim);transition:.2s}
-.tog input:checked+.tsl{background:var(--gd);border-color:var(--gm)}
-.tog input:checked+.tsl::before{transform:translateX(15px);background:var(--green)}
-.creatbtn{width:100%;padding:10px;background:var(--gd);border:1px solid var(--gm);color:var(--green);font-family:var(--px);font-size:8px;letter-spacing:1px;cursor:pointer;transition:all .15s;margin-top:3px}
-.creatbtn:hover{background:var(--gm);border-color:var(--green)}
-.creatbtn:disabled{opacity:.3;cursor:not-allowed}
+#fmlist { flex: 1; overflow-y: auto; }
+.fmr { display: grid; grid-template-columns: 20px 1fr 85px 130px 76px; align-items: center; padding: 6px 13px; border-bottom: 1px solid var(--border); font-size: 11px; gap: 7px; cursor: pointer; transition: background .08s; }
+.fmr:hover { background: var(--s2); }
+.fmr.hdr { background: var(--s1); font-size: 9px; letter-spacing: 1px; text-transform: uppercase; color: var(--dim); cursor: default; border-bottom: 1px solid var(--border2); }
+.fmr.hdr:hover { background: var(--s1); }
+.fmicon { text-align: center; font-size: 13px; }
+.fmname { font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.fmsize { color: var(--dim); text-align: right; }
+.fmdate { color: var(--dim); }
+.fmacts { display: flex; gap: 4px; justify-content: flex-end; }
+.fmbtn { padding: 2px 7px; font-size: 10px; font-family: var(--mono); background: var(--s3); border: 1px solid var(--border2); color: var(--mid); cursor: pointer; transition: all .1s; white-space: nowrap; }
+.fmbtn:hover     { border-color: var(--mid); color: var(--text); }
+.fmbtn.del:hover { border-color: var(--red);    color: var(--red);    background: var(--rd); }
+.fmbtn.dl:hover  { border-color: var(--blue);   color: var(--blue);   background: var(--bd); }
+.fmbtn.ed:hover  { border-color: var(--yellow); color: var(--yellow); background: var(--yd); }
+.fmempty { padding: 40px; text-align: center; color: var(--dim); font-size: 11px; }
+#fmlist.dragover { outline: 2px dashed var(--gm); outline-offset: -3px; }
+#fmupload { display: none; }
 
-/* ── Confirm ───────────────────────────────────────────────── */
-#confirm{position:fixed;inset:0;background:rgba(0,0,0,.75);z-index:500;display:none;align-items:center;justify-content:center}
-#confirm.on{display:flex}
-.cfbox{background:var(--s1);border:1px solid var(--border2);padding:26px;width:320px}
-.cftitle{font-family:var(--px);font-size:9px;color:var(--red);margin-bottom:10px}
-.cfmsg{font-size:12px;color:var(--mid);line-height:1.7;margin-bottom:18px}
-.cfacts{display:flex;gap:7px;justify-content:flex-end}
+/* ─── Editor ───────────────────────────────────────────────── */
+#editor-overlay {
+  position: fixed; inset: 0; background: rgba(0,0,0,.8); z-index: 300;
+  display: none; align-items: center; justify-content: center;
+}
+#editor-overlay.on { display: flex; animation: fade-in .2s var(--ease); }
+#editor-box { background: var(--s1); border: 1px solid var(--border2); display: flex; flex-direction: column; width: min(900px,90vw); height: min(650px,85vh); animation: slide-up .25s var(--ease); }
+#editor-hdr { padding: 10px 14px; border-bottom: 1px solid var(--border); display: flex; align-items: center; gap: 10px; flex-shrink: 0; }
+#editor-title { font-size: 11px; color: var(--mid); flex: 1; font-weight: 700; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+#editor-ta { flex: 1; background: var(--bg); border: none; outline: none; color: var(--text); font-family: var(--mono); font-size: 12px; padding: 12px 14px; resize: none; line-height: 1.6; }
+#editor-footer { padding: 8px 14px; border-top: 1px solid var(--border); display: flex; justify-content: flex-end; gap: 7px; flex-shrink: 0; }
 
-/* ── Notif ─────────────────────────────────────────────────── */
-#notif{position:fixed;bottom:14px;right:14px;background:var(--s2);border:1px solid var(--border2);padding:9px 13px;font-size:12px;z-index:200;opacity:0;transform:translateY(7px);transition:all .2s;pointer-events:none;max-width:280px}
-#notif.on{opacity:1;transform:translateY(0)}
-#notif.g{border-color:var(--gm);color:var(--green)}
-#notif.r{border-color:#4a0909;color:var(--red)}
-#notif.y{border-color:#4a3000;color:var(--yellow)}
+/* ─── Create ───────────────────────────────────────────────── */
+#chdr  { padding: 11px 16px; border-bottom: 1px solid var(--border); display: flex; align-items: center; gap: 10px; background: var(--s1); flex-shrink: 0; }
+#chdr h2 { font-family: var(--px); font-size: 9px; color: var(--green); flex: 1; }
+#cbody { flex: 1; display: flex; overflow: hidden; }
+#cform { width: 330px; min-width: 330px; border-right: 1px solid var(--border); overflow-y: auto; padding: 14px; display: flex; flex-direction: column; gap: 10px; }
+#cbuild { flex: 1; display: flex; flex-direction: column; overflow: hidden; }
+#cbuildtitle { padding: 8px 13px; font-size: 9px; letter-spacing: 2px; text-transform: uppercase; color: var(--dim); border-bottom: 1px solid var(--border); flex-shrink: 0; }
+#cbuildout { flex: 1; overflow-y: auto; padding: 9px 13px; font-size: 11px; line-height: 1.7; background: var(--bg); }
+.cl   { white-space: pre-wrap; word-break: break-all; color: var(--dim); animation: fade-in .15s var(--ease); }
+.cl.s { color: var(--green); font-weight: 700; }
+.cl.e { color: var(--red);   font-weight: 700; }
+.cl.p { color: var(--yellow); }
 
-.spin{display:inline-block;width:8px;height:8px;border:1px solid var(--border2);border-top-color:var(--green);border-radius:50%;animation:sp .6s linear infinite;vertical-align:middle}
-@keyframes sp{to{transform:rotate(360deg)}}
+/* ─── Form ─────────────────────────────────────────────────── */
+.fsec { border-top: 1px solid var(--border); padding-top: 11px; }
+.fsec:first-child { border-top: none; padding-top: 0; }
+.fst  { font-size: 9px; letter-spacing: 2px; text-transform: uppercase; color: var(--dim); margin-bottom: 9px; }
+.fg   { margin-bottom: 9px; }
+.fl   { display: block; font-size: 10px; color: var(--mid); margin-bottom: 4px; letter-spacing: .5px; text-transform: uppercase; }
+input[type=text], input[type=number], select {
+  width: 100%; background: var(--s3); border: 1px solid var(--border2); color: var(--text);
+  font-family: var(--mono); font-size: 12px; padding: 7px 9px;
+  outline: none; transition: border-color .15s; -webkit-appearance: none;
+}
+input:focus, select:focus { border-color: var(--gm); }
+select option { background: var(--s2); }
+.frow { display: flex; gap: 7px; }
+.frow .fg { flex: 1; }
+.togrow { display: flex; align-items: center; justify-content: space-between; padding: 4px 0; }
+.toglbl { font-size: 11px; color: var(--mid); }
+.tog { position: relative; width: 32px; height: 17px; flex-shrink: 0; }
+.tog input { opacity: 0; width: 0; height: 0; }
+.tsl { position: absolute; inset: 0; background: var(--s3); border: 1px solid var(--border2); cursor: pointer; transition: all .2s; }
+.tsl::before { content: ''; position: absolute; width: 9px; height: 9px; left: 3px; top: 3px; background: var(--dim); transition: all .2s; }
+.tog input:checked + .tsl { background: var(--gd); border-color: var(--gm); }
+.tog input:checked + .tsl::before { transform: translateX(15px); background: var(--green); }
+.creatbtn { width: 100%; padding: 10px; background: var(--gd); border: 1px solid var(--gm); color: var(--green); font-family: var(--px); font-size: 8px; letter-spacing: 1px; cursor: pointer; transition: all .15s; margin-top: 3px; }
+.creatbtn:hover { background: var(--gm); border-color: var(--green); }
+.creatbtn:disabled { opacity: .3; cursor: not-allowed; }
+
+/* ─── Confirm Dialog ───────────────────────────────────────── */
+#confirm { position: fixed; inset: 0; background: rgba(0,0,0,.75); z-index: 500; display: none; align-items: center; justify-content: center; }
+#confirm.on { display: flex; animation: fade-in .2s var(--ease); }
+.cfbox { background: var(--s1); border: 1px solid var(--border2); padding: 26px; width: 320px; animation: slide-up .25s var(--ease); }
+.cftitle { font-family: var(--px); font-size: 9px; color: var(--red); margin-bottom: 10px; }
+.cfmsg   { font-size: 12px; color: var(--mid); line-height: 1.7; margin-bottom: 18px; }
+.cfacts  { display: flex; gap: 7px; justify-content: flex-end; }
+
+/* ─── Notification ─────────────────────────────────────────── */
+#notif {
+  position: fixed; bottom: 16px; right: 16px;
+  background: var(--s2); border: 1px solid var(--border2);
+  padding: 10px 14px; font-size: 12px; z-index: 200;
+  opacity: 0; transform: translateY(8px);
+  transition: opacity .2s var(--ease), transform .2s var(--ease);
+  pointer-events: none; max-width: 280px;
+}
+#notif.on { opacity: 1; transform: none; }
+#notif.g  { border-color: var(--gm); color: var(--green); }
+#notif.r  { border-color: #4a0909;   color: var(--red); }
+#notif.y  { border-color: #4a3000;   color: var(--yellow); }
+
+/* ─── Spinner ──────────────────────────────────────────────── */
+.spin { display: inline-block; width: 8px; height: 8px; border: 1px solid var(--border2); border-top-color: var(--green); border-radius: 50%; animation: spin .6s linear infinite; vertical-align: middle; }
+@keyframes spin { to { transform: rotate(360deg); } }
 </style>
 </head>
 <body>
+
+<!-- Page Loader -->
+<div id="loader">
+  <div class="loader-logo">SKITARU</div>
+  <div class="loader-bar"><div class="loader-bar-inner"></div></div>
+</div>
 
 <!-- Login -->
 <div id="login">
@@ -244,34 +343,41 @@ select option{background:var(--s2)}
 
 <!-- App -->
 <div id="app">
+
   <aside id="sidebar">
     <div id="logo">
-      <div class="ltxt">SKITARU</div>
-      <div class="lsub2">MC Docker Panel</div>
+      <div class="logo-title">SKITARU</div>
+      <div class="logo-sub">MC Docker Panel</div>
     </div>
     <button id="btn-new" onclick="showCreate()">⊞ &nbsp;Neuer Server</button>
     <div id="slbl">Server</div>
     <div id="slist"><div style="padding:13px 14px;color:var(--dim);font-size:11px"><span class="spin"></span> Lade...</div></div>
     <div id="sfooter">
       <span id="sfoot">—</span>
-      <button class="logbtn" onclick="openPwModal()" style="color:var(--mid)">🔑 PW</button> <button class="logbtn" onclick="doLogout()">Abmelden ⏎</button>
+      <div style="display:flex;gap:6px">
+        <button class="footbtn" onclick="openPwModal()" title="Passwort ändern">🔑</button>
+        <button class="footbtn danger" onclick="doLogout()">Abmelden ⏎</button>
+      </div>
     </div>
   </aside>
 
   <main id="main">
+
     <!-- Welcome -->
-    <div id="vwelcome" style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:22px;padding:40px">
-      <div style="font-family:var(--px);font-size:8px;color:var(--dim);letter-spacing:2px">SKITARU PANEL</div>
-      <div class="wgrid">
-        <div class="wcell"><div class="wnum" id="wt">0</div><div class="wlbl">Server</div></div>
-        <div class="wcell"><div class="wnum" id="wr">0</div><div class="wlbl">Online</div></div>
-        <div class="wcell"><div class="wnum r" id="ws">0</div><div class="wlbl">Offline</div></div>
+    <div id="vwelcome" class="view hidden" style="flex-direction:column">
+      <div style="display:flex;flex-direction:column;align-items:center;justify-content:center;flex:1;gap:24px;padding:40px">
+        <div style="font-family:var(--px);font-size:8px;color:var(--dim);letter-spacing:2px">SKITARU PANEL</div>
+        <div class="wgrid">
+          <div class="wcell"><div class="wnum" id="wt">0</div><div class="wlbl">Server</div></div>
+          <div class="wcell"><div class="wnum" id="wr">0</div><div class="wlbl">Online</div></div>
+          <div class="wcell"><div class="wnum r" id="ws">0</div><div class="wlbl">Offline</div></div>
+        </div>
+        <div class="whint">Server aus der Liste wählen<br>oder <b>⊞ Neuer Server</b> klicken.</div>
       </div>
-      <div class="whint">Server aus der Liste wählen<br>oder <b>⊞ Neuer Server</b> klicken.</div>
     </div>
 
     <!-- Server View -->
-    <div id="vserver" style="flex:1;display:none;flex-direction:column;overflow:hidden">
+    <div id="vserver" class="view hidden">
       <div id="shdr">
         <div class="hdot" id="hdot"></div>
         <div id="stitle">—</div>
@@ -279,7 +385,7 @@ select option{background:var(--s2)}
         <div class="hctrl">
           <button class="btn bg"  id="bstart"   onclick="srvAction('start')">▶ Start</button>
           <button class="btn br"  id="bstop"    onclick="srvAction('stop')">■ Stop</button>
-          <button class="btn bd2" id="brestart" onclick="srvAction('restart')">↺</button>
+          <button class="btn bd2" id="brestart" onclick="srvAction('restart')">↺ Restart</button>
           <button class="btn by"  id="bdelete"  onclick="confirmDel()">✕ Löschen</button>
         </div>
       </div>
@@ -289,29 +395,32 @@ select option{background:var(--s2)}
         <div class="tab"        data-tab="files"   onclick="switchTab('files')">Dateien</div>
       </div>
 
-      <!-- Console -->
+      <!-- Console Tab -->
       <div id="tconsole">
         <div id="cout"></div>
         <div id="cinrow">
           <span id="cprompt">/</span>
-          <input type="text" id="cinput" placeholder="Befehl eingeben... (Enter zum Senden)" autocomplete="off" spellcheck="false">
+          <input type="text" id="cinput" placeholder="Befehl eingeben..." autocomplete="off" spellcheck="false">
           <label class="ascroll"><input type="checkbox" id="asc" checked> Scroll</label>
-          <button class="csend" onclick="sendCmd()">Send ↵</button>
+          <button class="csend" onclick="sendCmd()">Senden ↵</button>
         </div>
       </div>
 
-      <!-- Details -->
+      <!-- Details Tab -->
       <div class="tpanel" id="tdetails">
-        <div class="dc" style="min-width:200px"><div class="dct">Server Info</div><div id="dinfo"></div></div>
+        <div class="dc" style="min-width:200px">
+          <div class="dct">Server Info</div>
+          <div id="dinfo"></div>
+        </div>
         <div class="dc" style="min-width:160px">
           <div class="dct">Live Ressourcen</div>
           <div class="dr"><span class="dk">CPU</span><span class="dv g" id="scpu">—</span></div>
-          <div class="dr"><span class="dk">RAM</span><span class="dv" id="smem">—</span></div>
+          <div class="dr"><span class="dk">RAM</span><span class="dv"   id="smem">—</span></div>
           <div class="dr"><span class="dk">RAM %</span><span class="dv" id="smemp">—</span></div>
         </div>
       </div>
 
-      <!-- Files -->
+      <!-- Files Tab -->
       <div id="tfiles">
         <div id="fmtb">
           <button class="btn bd2" onclick="fmUp()">↑ Zurück</button>
@@ -328,38 +437,48 @@ select option{background:var(--s2)}
       </div>
     </div>
 
-    <!-- Create -->
-    <div id="vcreate">
+    <!-- Create View -->
+    <div id="vcreate" class="view hidden">
       <div id="chdr">
         <h2>⊞ NEUER SERVER</h2>
         <button class="btn bd2" onclick="showWelcome()">✕ Abbrechen</button>
       </div>
       <div id="cbody">
         <div id="cform">
-          <div class="fs" style="border-top:none;padding-top:0">
+          <div class="fsec" style="border-top:none;padding-top:0">
             <div class="fst">Version</div>
             <div class="fg"><label class="fl">PaperMC Version</label>
               <select id="fver"><option>Lade...</option></select></div>
           </div>
-          <div class="fs">
+          <div class="fsec">
             <div class="fst">Server</div>
             <div class="fg"><label class="fl">Name</label><input type="text" id="fname" value="minecraft-server"></div>
-            <div class="fg"><label class="fl">MOTD (Serverbeschreibung)</label><input type="text" id="fmotd" placeholder="Mein toller Server"></div>
+            <div class="fg"><label class="fl">MOTD</label><input type="text" id="fmotd" placeholder="Mein Minecraft Server"></div>
             <div class="frow">
               <div class="fg"><label class="fl">Port</label><input type="number" id="fport" value="25565" min="1024" max="65535"></div>
-              <div class="fg"><label class="fl">RAM</label>
-                <select id="fram"><option value="">Lade...</option></select>
-              </div>
+              <div class="fg"><label class="fl">RAM</label><select id="fram"><option value="">Lade...</option></select></div>
             </div>
             <div class="fg"><label class="fl">Max. Spieler</label><input type="number" id="fplayers" value="20" min="1" max="500"></div>
           </div>
-          <div class="fs">
+          <div class="fsec">
             <div class="fst">Spielmodus</div>
             <div class="frow">
               <div class="fg"><label class="fl">Modus</label>
-                <select id="fgm"><option value="survival">Survival</option><option value="creative">Creative</option><option value="adventure">Adventure</option><option value="spectator">Spectator</option></select></div>
+                <select id="fgm">
+                  <option value="survival">Survival</option>
+                  <option value="creative">Creative</option>
+                  <option value="adventure">Adventure</option>
+                  <option value="spectator">Spectator</option>
+                </select>
+              </div>
               <div class="fg"><label class="fl">Schwierigkeit</label>
-                <select id="fdiff"><option value="peaceful">Peaceful</option><option value="easy">Easy</option><option value="normal" selected>Normal</option><option value="hard">Hard</option></select></div>
+                <select id="fdiff">
+                  <option value="peaceful">Peaceful</option>
+                  <option value="easy">Easy</option>
+                  <option value="normal" selected>Normal</option>
+                  <option value="hard">Hard</option>
+                </select>
+              </div>
             </div>
             <div class="togrow">
               <span class="toglbl">Online-Modus (Mojang Auth)</span>
@@ -374,10 +493,11 @@ select option{background:var(--s2)}
         </div>
       </div>
     </div>
+
   </main>
 </div>
 
-<!-- Editor -->
+<!-- Editor Modal -->
 <div id="editor-overlay" onclick="if(event.target===this)editorClose()">
   <div id="editor-box">
     <div id="editor-hdr">
@@ -393,18 +513,17 @@ select option{background:var(--s2)}
   </div>
 </div>
 
-
-<!-- Password Change Modal -->
+<!-- Passwort Modal -->
 <div id="pwmodal" onclick="if(event.target===this)closePwModal()" style="position:fixed;inset:0;background:rgba(0,0,0,.8);z-index:400;display:none;align-items:center;justify-content:center">
-  <div style="background:var(--s1);border:1px solid var(--border2);padding:28px;width:320px">
-    <div style="font-family:var(--px);font-size:9px;color:var(--green);margin-bottom:20px">⚙ PASSWORT ÄNDERN</div>
-    <div class="lfield"><label>Aktuelles Passwort</label><input type="password" id="pw-cur" autocomplete="current-password"></div>
-    <div class="lfield"><label>Neues Passwort</label><input type="password" id="pw-new" autocomplete="new-password"></div>
-    <div class="lfield"><label>Passwort bestätigen</label><input type="password" id="pw-new2" autocomplete="new-password"></div>
+  <div style="background:var(--s1);border:1px solid var(--border2);padding:28px;width:320px;animation:slide-up .25s var(--ease)">
+    <div style="font-family:var(--px);font-size:9px;color:var(--green);margin-bottom:20px">🔑 PASSWORT ÄNDERN</div>
+    <div class="lfield"><label>Aktuelles Passwort</label><input type="password" id="pw-cur"></div>
+    <div class="lfield"><label>Neues Passwort</label><input type="password" id="pw-new"></div>
+    <div class="lfield"><label>Bestätigen</label><input type="password" id="pw-new2"></div>
     <div class="lerr" id="pw-err"></div>
-    <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:4px">
+    <div style="display:flex;gap:8px;justify-content:flex-end">
       <button class="btn bd2" onclick="closePwModal()">Abbrechen</button>
-      <button class="btn bg" onclick="changePw()">Speichern</button>
+      <button class="btn bg"  onclick="changePw()">Speichern</button>
     </div>
   </div>
 </div>
@@ -424,8 +543,11 @@ select option{background:var(--s2)}
 <div id="notif"></div>
 
 <script>
-// ── Auth ─────────────────────────────────────────────────────
+// ── Auth ──────────────────────────────────────────────────────
 let TOKEN = localStorage.getItem('sk_token') || '';
+
+document.getElementById('lp').addEventListener('keydown', e => { if (e.key === 'Enter') doLogin(); });
+document.getElementById('lu').addEventListener('keydown', e => { if (e.key === 'Enter') document.getElementById('lp').focus(); });
 
 async function doLogin() {
   const u = document.getElementById('lu').value.trim();
@@ -435,100 +557,137 @@ async function doLogin() {
   if (!u || !p) { err.textContent = 'Alle Felder ausfüllen.'; return; }
   btn.disabled = true; btn.textContent = '⏳ PRÜFE...'; err.textContent = '';
   try {
-    const r = await fetch('/api/login', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ username:u, password:p }) });
+    const r = await fetch('/api/login', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ username: u, password: p }) });
     const d = await r.json();
-    if (!r.ok) { err.textContent = d.error || 'Fehler'; btn.disabled=false; btn.textContent='▶ ANMELDEN'; return; }
+    if (!r.ok) { err.textContent = d.error || 'Fehler'; btn.disabled = false; btn.textContent = '▶ ANMELDEN'; return; }
     TOKEN = d.token;
     localStorage.setItem('sk_token', TOKEN);
-    document.getElementById('login').style.display = 'none';
+    document.getElementById('login').classList.remove('on');
     document.getElementById('app').classList.add('on');
     initApp();
-  } catch { err.textContent = 'Verbindungsfehler.'; btn.disabled=false; btn.textContent='▶ ANMELDEN'; }
+  } catch {
+    err.textContent = 'Verbindungsfehler.';
+    btn.disabled = false; btn.textContent = '▶ ANMELDEN';
+  }
 }
-document.getElementById('lp').addEventListener('keydown', e => { if(e.key==='Enter') doLogin(); });
-document.getElementById('lu').addEventListener('keydown', e => { if(e.key==='Enter') document.getElementById('lp').focus(); });
 
 async function doLogout() {
-  try { await api('/api/logout','POST'); } catch {}
-  localStorage.removeItem('sk_token'); TOKEN=''; location.reload();
+  try { await api('/api/logout', 'POST'); } catch {}
+  localStorage.removeItem('sk_token'); TOKEN = '';
+  document.getElementById('app').classList.remove('on');
+  document.getElementById('login').classList.add('on');
+  document.getElementById('lu').value = '';
+  document.getElementById('lp').value = '';
+  document.getElementById('lbtn').textContent = '▶ ANMELDEN';
+  document.getElementById('lbtn').disabled = false;
 }
 
-// Auto-login check
+// Startup auth check
 (async () => {
-  if (!TOKEN) return;
-  try { await api('/api/me'); document.getElementById('login').style.display='none'; document.getElementById('app').classList.add('on'); initApp(); }
-  catch { localStorage.removeItem('sk_token'); TOKEN=''; }
+  const loader = document.getElementById('loader');
+  if (TOKEN) {
+    try {
+      await api('/api/me');
+      loader.classList.add('fade');
+      setTimeout(() => loader.remove(), 400);
+      document.getElementById('app').classList.add('on');
+      initApp();
+      return;
+    } catch {
+      localStorage.removeItem('sk_token'); TOKEN = '';
+    }
+  }
+  loader.classList.add('fade');
+  setTimeout(() => { loader.remove(); document.getElementById('login').classList.add('on'); }, 400);
 })();
 
-// ── State ─────────────────────────────────────────────────────
+// ── State ──────────────────────────────────────────────────────
 let containers = [], activeName = null, logWs = null, statsIv = null;
+let loadingServers = new Set(), loadingPollIv = null;
 const infoCache = {};
 
-// ── Init ──────────────────────────────────────────────────────
 function initApp() {
+  showWelcome();
   loadContainers();
   loadVersions();
   loadSystemRam();
-  setInterval(loadContainers, 7000);
+  setInterval(loadContainers, 6000);
 }
 
-// ── Containers ────────────────────────────────────────────────
+// ── Containers ─────────────────────────────────────────────────
 async function loadContainers() {
   try {
-    containers = await api('/api/containers');
+    const fresh = await api('/api/containers');
+    containers = fresh;
     renderSidebar();
     updateWelcome();
     if (activeName) {
       const c = containers.find(x => x.name === activeName);
       if (c) updateHeader(c);
     }
-  } catch {}
+  } catch(e) {
+    if (e.message === '__UNAUTHORIZED__') showLoginScreen();
+  }
+}
+
+function showLoginScreen() {
+  localStorage.removeItem('sk_token'); TOKEN = '';
+  clearInterval(statsIv); stopLogs();
+  document.getElementById('app').classList.remove('on');
+  document.getElementById('login').classList.add('on');
 }
 
 function getStatus(c) {
-  const s = (c.status||'').toLowerCase();
+  if (loadingServers.has(c.name)) return 'loading';
+  const s = (c.status || '').toLowerCase();
   if (s.startsWith('up') || s.includes('running')) return 'running';
   if (s.includes('restart')) return 'restarting';
   return 'stopped';
 }
 
+// Only re-render sidebar if content actually changed (prevents flash)
+let _lastSidebarHtml = '';
 function renderSidebar() {
-  const list = document.getElementById('slist');
-  if (!containers.length) {
-    list.innerHTML = `<div style="padding:12px 14px;color:var(--dim);font-size:11px">Keine Server</div>`;
-  } else {
-    // BUG FIX: use single quotes around name in onclick - server names are [a-z0-9-] safe
-    list.innerHTML = containers.map(c => {
-      const st = getStatus(c);
-      const pm = c.ports.match(/:(\d+)->/);
-      const port = pm ? pm[1] : '—';
-      const active = activeName === c.name;
-      return `<div class="si${active?' active':''}" onclick="selectServer('${c.name}')">
-        <div class="sdot ${st}"></div>
-        <div class="sinfo">
-          <div class="sname">${c.name}</div>
-          <div class="smeta">${st} · :${port}</div>
-        </div>
-      </div>`;
-    }).join('');
+  const html = containers.length === 0
+    ? `<div style="padding:13px 14px;color:var(--dim);font-size:11px">Keine Server vorhanden</div>`
+    : containers.map((c, i) => {
+        const st   = getStatus(c);
+        const pm   = c.ports.match(/:(\d+)->/);
+        const port = pm ? pm[1] : '—';
+        const meta = loadingServers.has(c.name) ? 'starting...' : st;
+        const delay = `animation-delay:${i * 40}ms`;
+        return `<div class="si${activeName === c.name ? ' active' : ''}" style="${delay}" onclick="selectServer('${c.name}')">
+          <div class="sdot ${st}"></div>
+          <div class="sinfo">
+            <div class="sname">${c.name}</div>
+            <div class="smeta">${meta} · :${port}</div>
+          </div>
+        </div>`;
+      }).join('');
+
+  if (html !== _lastSidebarHtml) {
+    document.getElementById('slist').innerHTML = html;
+    _lastSidebarHtml = html;
   }
-  const run = containers.filter(c=>getStatus(c)==='running').length;
+
+  const run = containers.filter(c => getStatus(c) === 'running').length;
   document.getElementById('sfoot').textContent = `${run}/${containers.length} online`;
   updateWelcome();
 }
 
 function updateWelcome() {
-  const tot = containers.length, run = containers.filter(c=>getStatus(c)==='running').length;
+  const tot = containers.length;
+  const run = containers.filter(c => getStatus(c) === 'running').length;
   document.getElementById('wt').textContent = tot;
   document.getElementById('wr').textContent = run;
   document.getElementById('ws').textContent = tot - run;
 }
 
-// ── Views ─────────────────────────────────────────────────────
+// ── Views ──────────────────────────────────────────────────────
 function showView(id) {
-  ['vwelcome','vserver','vcreate'].forEach(v => {
+  ['vwelcome', 'vserver', 'vcreate'].forEach(v => {
     const el = document.getElementById(v);
-    el.style.display = v === id ? 'flex' : 'none';
+    el.classList.toggle('hidden', v !== id);
   });
 }
 
@@ -541,11 +700,12 @@ function showCreate() {
   stopLogs(); clearInterval(statsIv); activeName = null;
   renderSidebar(); showView('vcreate');
   document.getElementById('cbuildout').innerHTML = '<div class="cl">Konfiguration ausfüllen und starten...</div>';
-  const b = document.getElementById('bcreat'); b.disabled=false; b.textContent='▶ SERVER ERSTELLEN';
+  const b = document.getElementById('bcreat'); b.disabled = false; b.textContent = '▶ SERVER ERSTELLEN';
 }
 
-// ── Select Server ─────────────────────────────────────────────
+// ── Select Server ──────────────────────────────────────────────
 async function selectServer(name) {
+  if (activeName === name) return;
   stopLogs(); clearInterval(statsIv);
   activeName = name;
   showView('vserver');
@@ -555,40 +715,54 @@ async function selectServer(name) {
   const c = containers.find(x => x.name === name);
   if (c) {
     updateHeader(c);
-    if (getStatus(c) === 'running') { pollStats(name); statsIv = setInterval(()=>pollStats(name), 5000); }
+    if (getStatus(c) === 'running') {
+      pollStats(name);
+      statsIv = setInterval(() => pollStats(name), 5000);
+    }
   }
 
   connectLogs(name);
 
-  if (!infoCache[name]) { try { infoCache[name] = await api(`/api/servers/${name}/info`); } catch {} }
+  if (!infoCache[name]) {
+    try { infoCache[name] = await api(`/api/servers/${name}/info`); } catch {}
+  }
   if (c) renderDetails(c, infoCache[name]);
 }
 
 function updateHeader(c) {
-  const st  = getStatus(c);
+  const st = getStatus(c);
+  const loading = st === 'loading';
   const dot = document.getElementById('hdot');
-  const styles = {
-    running:    'background:var(--green);box-shadow:0 0 6px var(--g2);animation:dp 2.5s infinite',
+
+  const dotStyles = {
+    running:    'background:var(--green);box-shadow:0 0 7px var(--g2);animation:pulse-green 2.5s infinite',
     stopped:    'background:var(--red)',
-    restarting: 'background:var(--yellow);animation:dp 1s infinite',
+    restarting: 'background:var(--yellow);animation:pulse-yellow 1s infinite',
+    loading:    'background:var(--yellow);animation:pulse-loading .8s ease-in-out infinite',
   };
-  dot.style.cssText = styles[st] || styles.stopped;
+  dot.style.cssText = dotStyles[st] || dotStyles.stopped;
+
   document.getElementById('stitle').textContent = c.name.toUpperCase();
   const badge = document.getElementById('sbadge');
-  badge.textContent = st.toUpperCase(); badge.className = `sbadge ${st}`;
+  badge.textContent = loading ? '⏳ STARTING...' : st.toUpperCase();
+  badge.className = 'sbadge ' + (loading ? 'restarting' : st);
+
   const run = st === 'running';
-  document.getElementById('bstart').disabled   = run;
+  document.getElementById('bstart').disabled   = run || loading;
   document.getElementById('bstop').disabled    = !run;
-  document.getElementById('brestart').disabled = !run;
+  document.getElementById('brestart').disabled = !run || loading;
+  document.getElementById('bdelete').disabled  = false;
 }
 
-// ── Tabs ──────────────────────────────────────────────────────
+// ── Tabs ───────────────────────────────────────────────────────
 function switchTab(tab) {
   document.querySelectorAll('.tab').forEach(t => t.classList.toggle('active', t.dataset.tab === tab));
-  document.getElementById('tconsole').style.display  = tab === 'console' ? 'flex' : 'none';
-  document.getElementById('tconsole').style.flexDirection = 'column';
-  document.getElementById('tconsole').style.overflow = 'hidden';
-  document.getElementById('tconsole').style.flex     = '1';
+  document.getElementById('tconsole').style.display = tab === 'console' ? 'flex' : 'none';
+  if (tab === 'console') {
+    document.getElementById('tconsole').style.flexDirection = 'column';
+    document.getElementById('tconsole').style.flex = '1';
+    document.getElementById('tconsole').style.overflow = 'hidden';
+  }
   document.getElementById('tdetails').classList.toggle('on', tab === 'details');
   const tf = document.getElementById('tfiles');
   const wasFiles = tf.classList.contains('on');
@@ -596,33 +770,57 @@ function switchTab(tab) {
   if (tab === 'files' && !wasFiles) { fmCwd = ''; fmLoad(); }
 }
 
-// ── Console ───────────────────────────────────────────────────
+// ── Console ────────────────────────────────────────────────────
 function connectLogs(name) {
   const out = document.getElementById('cout');
   out.innerHTML = '';
-  appendLog(`\x1b[32m► Verbinde mit "${name}"...\x1b[0m\n`, '');
-  const proto = location.protocol==='https:'?'wss':'ws';
+  appendLog(`\x1b[32m► Verbinde mit "${name}"...\x1b[0m`);
+  const proto = location.protocol === 'https:' ? 'wss' : 'ws';
   logWs = new WebSocket(`${proto}://${location.host}/ws/logs/${name}?_t=${TOKEN}`);
-  logWs.onmessage = e => { const m = JSON.parse(e.data); if(m.type==='log') appendLog(m.data); };
-  logWs.onerror   = () => appendLog('\x1b[31m► WebSocket Fehler.\x1b[0m\n', '');
-  logWs.onclose   = () => appendLog('\x1b[33m► Verbindung beendet.\x1b[0m\n', '');
+  logWs.onmessage = e => { const m = JSON.parse(e.data); if (m.type === 'log') appendLog(m.data); };
+  logWs.onerror   = () => appendLog('\x1b[31m► Verbindungsfehler.\x1b[0m');
+  logWs.onclose   = () => appendLog('\x1b[33m► Log-Stream beendet.\x1b[0m');
 }
 
-function stopLogs() { if(logWs) { try{logWs.close();}catch{} logWs=null; } }
+function stopLogs() {
+  if (logWs) { try { logWs.close(); } catch {} logWs = null; }
+}
 
 function appendLog(text, cls) {
   const out = document.getElementById('cout');
   const lines = text.split('\n');
   lines.forEach((line, i) => {
-    const cleaned = cleanLogLine(line);
-    if (!cleaned) return; // skip blank or control-only lines
+    const cleaned = cleanLog(line);
+    if (!cleaned && i === lines.length - 1) return;
     const d = document.createElement('div');
     d.className = 'll ' + (cls !== undefined ? cls : autoClass(cleaned));
-    d.innerHTML = ansiToHtml(line);
+    d.innerHTML = ansiToHtml(cleaned);
     out.appendChild(d);
   });
-  const a = document.getElementById('asc');
-  if (!a || a.checked) out.scrollTop = out.scrollHeight;
+  if (document.getElementById('asc')?.checked) out.scrollTop = out.scrollHeight;
+}
+
+function cleanLog(text) {
+  return text
+    .replace(/\x1b\[K/g, '')
+    .replace(/\x1b\[\?[\d;]*[a-zA-Z]/g, '')
+    .replace(/\x1b[=>]/g, '')
+    .replace(/\x1b\[\d*[ABCDEFGJKST]/g, '')
+    .replace(/\x1b\[\d*;\d*[Hf]/g, '')
+    .replace(/\r/g, '')
+    .replace(/^>\.\.\. */g, '')
+    .trim();
+}
+
+function ansiToHtml(text) {
+  let s = text.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+  s = s.replace(/\x1b\[0?m/g, '</span>');
+  s = s.replace(/\x1b\[(\d+)(?:;\d+)*m/g, (_, c) => `<span class="a${c}">`);
+  s = s.replace(/\x1b\[[^m]*m/g, '');
+  const opens  = (s.match(/<span/g)  || []).length;
+  const closes = (s.match(/<\/span>/g) || []).length;
+  for (let i = 0; i < opens - closes; i++) s += '</span>';
+  return s;
 }
 
 function autoClass(l) {
@@ -633,32 +831,7 @@ function autoClass(l) {
   return '';
 }
 
-function cleanLogLine(text) {
-  // Strip all ESC sequences that are NOT color codes (cursor movement, erase, etc.)
-  return text
-    .replace(/\x1b\[K/g, '')           // erase to end of line
-    .replace(/\x1b\[\?[\d;]*[a-zA-Z]/g, '') // private mode sequences
-    .replace(/\x1b[=>]/g, '')           // alt keypad modes
-    .replace(/\x1b\[\d*[ABCDEFGJKST]/g, '') // cursor movement / scroll
-    .replace(/\x1b\[\d*;\d*[Hf]/g, '')  // cursor position
-    .replace(/\x1b\[[\d;]*m/g, m => m) // keep color codes (handled below)
-    .replace(/\r/g, '')                 // carriage return
-    .replace(/^>\.\.\. */g, '')        // docker progress prefix
-    .trim();
-}
-
-function ansiToHtml(text) {
-  let s = cleanLogLine(text);
-  s = s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
-  s = s.replace(/\x1b\[0?m/g,'</span>');
-  s = s.replace(/\x1b\[(\d+)(?:;\d+)*m/g,(_,c)=>`<span class="a${c}">`);
-  s = s.replace(/\x1b\[[^m]*m/g,'');
-  const o=(s.match(/<span/g)||[]).length, c=(s.match(/<\/span>/g)||[]).length;
-  for(let i=0;i<o-c;i++) s+='</span>';
-  return s;
-}
-
-document.getElementById('cinput').addEventListener('keydown', e => { if(e.key==='Enter') sendCmd(); });
+document.getElementById('cinput').addEventListener('keydown', e => { if (e.key === 'Enter') sendCmd(); });
 
 async function sendCmd() {
   if (!activeName) return;
@@ -666,33 +839,37 @@ async function sendCmd() {
   const cmd = input.value.trim();
   if (!cmd) return;
   input.value = '';
-  appendLog(`> ${cmd}\n`, 'info');
+  appendLog(`> ${cmd}`, 'info');
   try {
     const r = await api(`/api/containers/${activeName}/command`, 'POST', { command: cmd });
-    if (r.response) appendLog(r.response + '\n', '');
-  } catch(e) { appendLog(`Fehler: ${e.message}\n`, 'error'); }
+    if (r.response) appendLog(r.response);
+  } catch(e) { appendLog(`Fehler: ${e.message}`, 'error'); }
 }
 
-// ── Server Actions ────────────────────────────────────────────
+// ── Server Actions ─────────────────────────────────────────────
 async function srvAction(action) {
   if (!activeName) return;
-  ['bstart','bstop','brestart','bdelete'].forEach(id => document.getElementById(id).disabled=true);
+  ['bstart', 'bstop', 'brestart', 'bdelete'].forEach(id => document.getElementById(id).disabled = true);
   try {
     await api(`/api/containers/${activeName}/${action}`, 'POST');
     notify(`${action} ausgeführt`, 'g');
     await loadContainers();
-    const c = containers.find(x=>x.name===activeName);
+    const c = containers.find(x => x.name === activeName);
     if (c) {
       updateHeader(c);
       clearInterval(statsIv);
-      if (getStatus(c) === 'running') { pollStats(activeName); statsIv = setInterval(()=>pollStats(activeName), 5000); }
+      if (getStatus(c) === 'running') { pollStats(activeName); statsIv = setInterval(() => pollStats(activeName), 5000); }
     }
-  } catch(e) { notify(`Fehler: ${e}`, 'r'); await loadContainers(); }
+  } catch(e) {
+    notify(`Fehler: ${e.message}`, 'r');
+    document.getElementById('bdelete').disabled = false;
+    await loadContainers();
+  }
 }
 
 function confirmDel() {
   if (!activeName) return;
-  document.getElementById('cfmsg').innerHTML = `Server <b style="color:var(--text)">${activeName}</b> wird <b style="color:var(--red)">dauerhaft gelöscht</b>.<br>Alle Welt-Daten, Plugins und Konfigurationen gehen verloren.`;
+  document.getElementById('cfmsg').innerHTML = `Server <b style="color:var(--text)">${activeName}</b> wird <b style="color:var(--red)">dauerhaft gelöscht</b>.<br>Alle Weltdaten, Plugins und Konfigurationen gehen verloren.`;
   document.getElementById('cfok').onclick = doDel;
   document.getElementById('confirm').classList.add('on');
 }
@@ -704,25 +881,33 @@ async function doDel() {
   try {
     await api(`/api/containers/${name}`, 'DELETE');
     notify(`"${name}" gelöscht`, 'g');
+    delete infoCache[name];
     stopLogs(); clearInterval(statsIv); activeName = null;
-    await loadContainers(); showWelcome();
-  } catch(e) { notify(`Fehler: ${e}`, 'r'); }
+    await loadContainers();
+    showWelcome();
+  } catch(e) { notify(`Fehler: ${e.message}`, 'r'); }
 }
 
-// ── Details ───────────────────────────────────────────────────
+// ── Details ────────────────────────────────────────────────────
 function renderDetails(c, info) {
   const rows = [
-    ['Container',c.name],['Status',c.status],['Version',info?.version||'—'],
-    ['Build',info?.build||'—'],['Port',info?.port||'—'],['RCON Port',info?.rconPort||'—'],
-    ['RAM',info?.ram||'—'],['Max Spieler',info?.maxPlayers||'—'],
-    ['Spielmodus',info?.gamemode||'—'],['Schwierigkeit',info?.difficulty||'—'],
-    ['Online-Modus',info?.onlineMode?'Ja':'Nein'],
-    ['MOTD',info?.motd||'—'],
-    ['Erstellt',info?.created?new Date(info.created).toLocaleString('de-DE'):'—'],
+    ['Container',    c.name],
+    ['Status',       c.status],
+    ['Version',      info?.version   || '—'],
+    ['Build',        info?.build     || '—'],
+    ['Port',         info?.port      || '—'],
+    ['RCON Port',    info?.rconPort  || '—'],
+    ['RAM',          info?.ram       || '—'],
+    ['Max Spieler',  info?.maxPlayers || '—'],
+    ['Spielmodus',   info?.gamemode  || '—'],
+    ['Schwierigkeit',info?.difficulty|| '—'],
+    ['Online-Modus', info?.onlineMode ? 'Ja' : 'Nein'],
+    ['MOTD',         info?.motd      || '—'],
+    ['Erstellt',     info?.created ? new Date(info.created).toLocaleString('de-DE') : '—'],
   ];
-  document.getElementById('dinfo').innerHTML = rows.map(([k,v])=>
-    `<div class="dr"><span class="dk">${k}</span><span class="dv">${v}</span></div>`
-  ).join('');
+  document.getElementById('dinfo').innerHTML = rows
+    .map(([k, v]) => `<div class="dr"><span class="dk">${k}</span><span class="dv">${v}</span></div>`)
+    .join('');
 }
 
 async function pollStats(name) {
@@ -734,18 +919,41 @@ async function pollStats(name) {
   } catch {}
 }
 
-// ── File Manager ──────────────────────────────────────────────
+// ── Loading Poll (after server creation) ──────────────────────
+function startLoadingPoll(name) {
+  if (loadingPollIv) clearInterval(loadingPollIv);
+  loadingPollIv = setInterval(async () => {
+    await loadContainers();
+    const c = containers.find(x => x.name === name);
+    if (c && !loadingServers.has(name)) return; // already resolved
+    if (c && (c.status || '').toLowerCase().startsWith('up')) {
+      loadingServers.delete(name);
+      clearInterval(loadingPollIv); loadingPollIv = null;
+      renderSidebar();
+      if (activeName === name) {
+        updateHeader(c);
+        clearInterval(statsIv);
+        pollStats(name);
+        statsIv = setInterval(() => pollStats(name), 5000);
+      }
+      notify(`"${name}" ist jetzt online!`, 'g');
+    }
+  }, 3000);
+}
+
+// ── File Manager ───────────────────────────────────────────────
 let fmCwd = '';
 
 async function fmLoad(dir) {
   if (dir !== undefined) fmCwd = dir;
   if (!activeName) return;
-  const list = document.getElementById('fmlist');
-  list.innerHTML = '<div class="fmempty"><span class="spin"></span> Lade...</div>';
+  document.getElementById('fmlist').innerHTML = '<div class="fmempty"><span class="spin"></span> Lade...</div>';
   try {
     const data = await api(`/api/files/${activeName}?dir=${encodeURIComponent(fmCwd)}`);
     fmRender(data.entries, data.cwd);
-  } catch(e) { list.innerHTML = `<div class="fmempty" style="color:var(--red)">Fehler: ${e.message}</div>`; }
+  } catch(e) {
+    document.getElementById('fmlist').innerHTML = `<div class="fmempty" style="color:var(--red)">Fehler: ${e.message}</div>`;
+  }
 }
 
 function fmRender(entries, cwd) {
@@ -756,51 +964,43 @@ function fmRender(entries, cwd) {
   list.innerHTML = `
     <div class="fmr hdr"><div></div><div>Name</div><div style="text-align:right">Größe</div><div>Geändert</div><div></div></div>
     ${entries.map(e => {
-      const icon = e.type==='dir' ? '📁' : fmIcon(e.name);
-      const size = e.type==='dir' ? '—' : fmSize(e.size);
-      const date = new Date(e.modified).toLocaleDateString('de-DE',{day:'2-digit',month:'2-digit',year:'2-digit',hour:'2-digit',minute:'2-digit'});
-      const ep   = (cwd ? cwd+'/' : '') + e.name;
+      const icon   = e.type === 'dir' ? '📁' : fmIcon(e.name);
+      const size   = e.type === 'dir' ? '—' : fmSize(e.size);
+      const date   = new Date(e.modified).toLocaleDateString('de-DE', { day:'2-digit', month:'2-digit', year:'2-digit', hour:'2-digit', minute:'2-digit' });
+      const ep     = (cwd ? cwd + '/' : '') + e.name;
       const isText = fmIsText(e.name);
-      const actBtns = e.type === 'dir'
-        ? `<button class="fmbtn"     data-action="open" data-path="${ep}">Öffnen</button>
-           <button class="fmbtn del" data-action="del"  data-path="${ep}" data-name="${e.name}">✕</button>`
-        : `${isText ? `<button class="fmbtn ed" data-action="edit" data-path="${ep}" data-name="${e.name}">✎</button>` : ''}
-           <button class="fmbtn dl"  data-action="dl"   data-path="${ep}">↓</button>
-           <button class="fmbtn del" data-action="del"  data-path="${ep}" data-name="${e.name}">✕</button>`;
-      const rowClick = e.type === 'dir' ? `data-action="open" data-path="${ep}"` : (isText ? `data-action="edit" data-path="${ep}" data-name="${e.name}"` : `data-action="dl" data-path="${ep}"`);
-      return `<div class="fmr" ${rowClick}>
-        <div class="fmicon">${icon}</div>
-        <div class="fmname">${e.name}</div>
-        <div class="fmsize">${size}</div>
-        <div class="fmdate">${date}</div>
-        <div class="fmacts">${actBtns}</div>
-      </div>`;
+      const acts   = e.type === 'dir'
+        ? `<button class="fmbtn"     data-a="open" data-p="${ep}">Öffnen</button>
+           <button class="fmbtn del" data-a="del"  data-p="${ep}" data-n="${e.name}">✕</button>`
+        : `${isText ? `<button class="fmbtn ed" data-a="edit" data-p="${ep}" data-n="${e.name}">✎</button>` : ''}
+           <button class="fmbtn dl"  data-a="dl"  data-p="${ep}">↓</button>
+           <button class="fmbtn del" data-a="del" data-p="${ep}" data-n="${e.name}">✕</button>`;
+      const rowA = e.type === 'dir' ? `data-a="open" data-p="${ep}"` : (isText ? `data-a="edit" data-p="${ep}" data-n="${e.name}"` : `data-a="dl" data-p="${ep}"`);
+      return `<div class="fmr" ${rowA}><div class="fmicon">${icon}</div><div class="fmname">${e.name}</div><div class="fmsize">${size}</div><div class="fmdate">${date}</div><div class="fmacts">${acts}</div></div>`;
     }).join('')}`;
 
-  // Event delegation - no inline onclick issues
-  list.querySelectorAll('[data-action]').forEach(el => {
+  list.querySelectorAll('[data-a]').forEach(el => {
     el.addEventListener('click', e => {
       e.stopPropagation();
-      const action = el.dataset.action, p = el.dataset.path, name = el.dataset.name;
-      if (action === 'open') fmLoad(p);
-      else if (action === 'del')  fmDelete(p, name);
-      else if (action === 'dl')   fmDownload(p);
-      else if (action === 'edit') fmEdit(p, name);
+      const a = el.dataset.a, p = el.dataset.p, n = el.dataset.n;
+      if (a === 'open') fmLoad(p);
+      else if (a === 'del')  fmDelete(p, n);
+      else if (a === 'dl')   fmDownload(p);
+      else if (a === 'edit') fmEdit(p, n);
     });
   });
 }
 
 function fmUpdatePath(cwd) {
-  const el = document.getElementById('fmpath');
   const parts = cwd ? cwd.split('/').filter(Boolean) : [];
-  let html = `<span class="ps" onclick="fmLoad('')">/data</span>`;
+  let html = `<span class="fmp" onclick="fmLoad('')">/data</span>`;
   let built = '';
   parts.forEach(p => {
-    built += (built?'/':'') + p;
+    built += (built ? '/' : '') + p;
     const b = built;
-    html += `<span class="sep">/</span><span class="ps" onclick="fmLoad('${b}')">${p}</span>`;
+    html += `<span class="fmsep">/</span><span class="fmp" onclick="fmLoad('${b}')">${p}</span>`;
   });
-  el.innerHTML = html;
+  document.getElementById('fmpath').innerHTML = html;
 }
 
 function fmUp() {
@@ -810,17 +1010,17 @@ function fmUp() {
 }
 
 async function fmDelete(filePath, name) {
-  if (!confirm(`"${name||filePath}" löschen?`)) return;
+  if (!confirm(`"${name || filePath}" löschen?`)) return;
   try {
     await api(`/api/files/${activeName}?path=${encodeURIComponent(filePath)}`, 'DELETE');
-    notify(`Gelöscht`, 'g');
+    notify('Gelöscht', 'g');
     fmLoad();
   } catch(e) { notify(`Fehler: ${e.message}`, 'r'); }
 }
 
 async function fmDownload(filePath) {
   try {
-    const res = await fetch(`/api/files/${activeName}/download?path=${encodeURIComponent(filePath)}`, { headers:{'x-auth-token':TOKEN} });
+    const res = await fetch(`/api/files/${activeName}/download?path=${encodeURIComponent(filePath)}`, { headers: { 'x-auth-token': TOKEN } });
     if (!res.ok) { notify('Download Fehler', 'r'); return; }
     const blob = await res.blob();
     const burl = URL.createObjectURL(blob);
@@ -833,21 +1033,18 @@ async function fmDownload(filePath) {
 async function fmEdit(filePath, name) {
   document.getElementById('editor-title').textContent = name || filePath;
   document.getElementById('editor-ta').value = 'Lade...';
-  document.getElementById('editor-overlay').classList.add('on');
   document.getElementById('editor-overlay').dataset.path = filePath;
+  document.getElementById('editor-overlay').classList.add('on');
   try {
     const r = await api(`/api/files/${activeName}/content?path=${encodeURIComponent(filePath)}`);
     document.getElementById('editor-ta').value = r.content;
-  } catch(e) {
-    document.getElementById('editor-ta').value = `Fehler: ${e.message}`;
-  }
+  } catch(e) { document.getElementById('editor-ta').value = `Fehler: ${e.message}`; }
 }
 
 async function editorSave() {
-  const filePath = document.getElementById('editor-overlay').dataset.path;
-  const content  = document.getElementById('editor-ta').value;
+  const fp = document.getElementById('editor-overlay').dataset.path;
   try {
-    await api(`/api/files/${activeName}/content?path=${encodeURIComponent(filePath)}`, 'PUT', { content });
+    await api(`/api/files/${activeName}/content?path=${encodeURIComponent(fp)}`, 'PUT', { content: document.getElementById('editor-ta').value });
     notify('Gespeichert', 'g');
   } catch(e) { notify(`Fehler: ${e.message}`, 'r'); }
 }
@@ -860,7 +1057,7 @@ async function fmUpload(files) {
   for (const f of files) fd.append('files', f);
   notify(`${files.length} Datei(en) werden hochgeladen...`, 'y');
   try {
-    const res = await fetch(`/api/files/${activeName}/upload?dir=${encodeURIComponent(fmCwd)}`, { method:'POST', headers:{'x-auth-token':TOKEN}, body:fd });
+    const res = await fetch(`/api/files/${activeName}/upload?dir=${encodeURIComponent(fmCwd)}`, { method: 'POST', headers: { 'x-auth-token': TOKEN }, body: fd });
     if (!res.ok) throw new Error((await res.json()).error);
     notify(`${files.length} Datei(en) hochgeladen`, 'g');
     fmLoad();
@@ -871,47 +1068,44 @@ async function fmUpload(files) {
 async function fmMkdir() {
   const name = prompt('Ordner Name:');
   if (!name) return;
-  const newPath = (fmCwd ? fmCwd+'/' : '') + name;
-  try { await api(`/api/files/${activeName}/mkdir`, 'POST', { path: newPath }); notify('Ordner erstellt','g'); fmLoad(); }
-  catch(e) { notify(`Fehler: ${e.message}`,'r'); }
+  try {
+    await api(`/api/files/${activeName}/mkdir`, 'POST', { path: (fmCwd ? fmCwd + '/' : '') + name });
+    notify('Ordner erstellt', 'g');
+    fmLoad();
+  } catch(e) { notify(`Fehler: ${e.message}`, 'r'); }
 }
 
 function fmIcon(name) {
   const ext = name.split('.').pop().toLowerCase();
-  const m = {jar:'☕',yml:'⚙',yaml:'⚙',json:'{}',txt:'📄',log:'📋',properties:'⚙',zip:'📦',tar:'📦',gz:'📦',sh:'📜',png:'🖼',jpg:'🖼',jpeg:'🖼',toml:'⚙',conf:'⚙',cfg:'⚙',sk:'📜'};
-  return m[ext] || '📄';
-}
-function fmIsText(name) {
-  const ext = name.split('.').pop().toLowerCase();
-  return ['txt','yml','yaml','json','properties','log','sh','toml','conf','cfg','xml','md','sk','cfg','ini','env'].includes(ext);
-}
-function fmSize(bytes) {
-  if (bytes < 1024) return `${bytes} B`;
-  if (bytes < 1048576) return `${(bytes/1024).toFixed(1)} KB`;
-  if (bytes < 1073741824) return `${(bytes/1048576).toFixed(1)} MB`;
-  return `${(bytes/1073741824).toFixed(2)} GB`;
+  return { jar:'☕', yml:'⚙', yaml:'⚙', json:'{}', txt:'📄', log:'📋', properties:'⚙', zip:'📦', tar:'📦', gz:'📦', sh:'📜', png:'🖼', jpg:'🖼', jpeg:'🖼', toml:'⚙', conf:'⚙', cfg:'⚙', ini:'⚙', sk:'📜', xml:'📄', md:'📄' }[ext] || '📄';
 }
 
-// ── Create ────────────────────────────────────────────────────
+function fmIsText(name) {
+  return ['txt','yml','yaml','json','properties','log','sh','toml','conf','cfg','xml','md','sk','ini','env'].includes(name.split('.').pop().toLowerCase());
+}
+
+function fmSize(b) {
+  if (b < 1024) return `${b} B`;
+  if (b < 1048576) return `${(b/1024).toFixed(1)} KB`;
+  if (b < 1073741824) return `${(b/1048576).toFixed(1)} MB`;
+  return `${(b/1073741824).toFixed(2)} GB`;
+}
+
+// ── Create Server ──────────────────────────────────────────────
 async function loadVersions() {
   try {
     const vers = await api('/api/paper/versions');
-    const sel = document.getElementById('fver');
-    sel.innerHTML = vers.map((v,i)=>`<option value="${v}"${i===0?' selected':''}>${v}</option>`).join('');
-  } catch { document.getElementById('fver').innerHTML = '<option>Fehler</option>'; }
+    document.getElementById('fver').innerHTML = vers.map((v, i) => `<option value="${v}"${i === 0 ? ' selected' : ''}>${v}</option>`).join('');
+  } catch { document.getElementById('fver').innerHTML = '<option>Fehler beim Laden</option>'; }
 }
 
 async function loadSystemRam() {
   try {
     const { ramGB } = await api('/api/system');
-    const sel = document.getElementById('fram');
-    const options = [1,2,4,6,8,10,12,16,20,24,32,48,64];
-    sel.innerHTML = options.filter(g => g <= ramGB).map(g =>
-      `<option value="${g}G"${g===2?' selected':''}>${g} GB</option>`
-    ).join('');
-    if (!sel.value) sel.innerHTML = '<option value="1G">1 GB</option>';
+    const opts = [1,2,4,6,8,10,12,16,20,24,32,48,64].filter(g => g <= ramGB);
+    document.getElementById('fram').innerHTML = opts.map(g => `<option value="${g}G"${g === 2 ? ' selected' : ''}>${g} GB</option>`).join('');
   } catch {
-    document.getElementById('fram').innerHTML = [1,2,4,8,16].map(g=>`<option value="${g}G"${g===2?' selected':''}>${g} GB</option>`).join('');
+    document.getElementById('fram').innerHTML = [1,2,4,8,16].map(g => `<option value="${g}G"${g === 2 ? ' selected' : ''}>${g} GB</option>`).join('');
   }
 }
 
@@ -927,80 +1121,79 @@ function createServer() {
     difficulty: document.getElementById('fdiff').value,
     onlineMode: document.getElementById('fonline').checked,
   };
-  if (!cfg.version || !cfg.name) { notify('Version und Name erforderlich','r'); return; }
+  if (!cfg.version || !cfg.name) { notify('Version und Name erforderlich', 'r'); return; }
 
   const out = document.getElementById('cbuildout');
   out.innerHTML = '';
   const btn = document.getElementById('bcreat');
-  btn.disabled=true; btn.textContent='⏳ ERSTELLE...';
+  btn.disabled = true; btn.textContent = '⏳ ERSTELLE...';
 
-  const proto = location.protocol==='https:'?'wss':'ws';
+  const proto = location.protocol === 'https:' ? 'wss' : 'ws';
   const ws = new WebSocket(`${proto}://${location.host}/ws/create?_t=${TOKEN}`);
-  ws.onopen = () => ws.send(JSON.stringify(cfg));
+  ws.onopen    = () => ws.send(JSON.stringify(cfg));
   ws.onmessage = e => {
     const m = JSON.parse(e.data);
     const d = document.createElement('div');
-    d.className = 'cl' + (m.type==='success'?' s':m.type==='error'?' e':m.type==='progress'?' p':'');
+    d.className = 'cl' + (m.type === 'success' ? ' s' : m.type === 'error' ? ' e' : m.type === 'progress' ? ' p' : '');
     d.textContent = m.data;
     out.appendChild(d); out.scrollTop = out.scrollHeight;
     if (m.type === 'success') {
       setTimeout(async () => {
-        ws.close(); btn.disabled=false; btn.textContent='▶ SERVER ERSTELLEN';
+        ws.close(); btn.disabled = false; btn.textContent = '▶ SERVER ERSTELLEN';
+        const nn = cfg.name.toLowerCase().replace(/[^a-z0-9-]/g, '-').replace(/^-+|-+$/g, '');
+        loadingServers.add(nn);
         await loadContainers();
-        const nn = cfg.name.toLowerCase().replace(/[^a-z0-9-]/g,'-').replace(/^-+|-+$/g,'');
-        const found = containers.find(c=>c.name===nn);
-        if (found) selectServer(found.name); else showWelcome();
-      }, 1500);
+        const found = containers.find(c => c.name === nn);
+        if (found) selectServer(found.name);
+        startLoadingPoll(nn);
+      }, 1200);
     }
-    if (m.type==='error') { btn.disabled=false; btn.textContent='▶ SERVER ERSTELLEN'; }
+    if (m.type === 'error') { btn.disabled = false; btn.textContent = '▶ SERVER ERSTELLEN'; }
   };
-  ws.onerror = () => { notify('WebSocket Fehler','r'); btn.disabled=false; btn.textContent='▶ SERVER ERSTELLEN'; };
+  ws.onerror = () => { notify('WebSocket Fehler', 'r'); btn.disabled = false; btn.textContent = '▶ SERVER ERSTELLEN'; };
 }
 
-// ── API ───────────────────────────────────────────────────────
-async function api(path, method='GET', body) {
-  const opts = { method, headers:{'Content-Type':'application/json','x-auth-token':TOKEN} };
+// ── API ────────────────────────────────────────────────────────
+async function api(path, method = 'GET', body) {
+  const opts = { method, headers: { 'Content-Type': 'application/json', 'x-auth-token': TOKEN } };
   if (body) opts.body = JSON.stringify(body);
   const res = await fetch(path, opts);
-  if (res.status === 401) { location.reload(); return; }
+  if (res.status === 401) throw new Error('__UNAUTHORIZED__');
   const data = await res.json();
   if (!res.ok) throw new Error(data.error || res.statusText);
   return data;
 }
 
-// ── Notify ────────────────────────────────────────────────────
-let nt;
-function notify(msg, type='g') {
+// ── Notify ─────────────────────────────────────────────────────
+let _nt;
+function notify(msg, type = 'g') {
   const el = document.getElementById('notif');
   el.textContent = msg; el.className = `on ${type}`;
-  clearTimeout(nt); nt = setTimeout(()=>el.className='', 3000);
+  clearTimeout(_nt); _nt = setTimeout(() => el.className = '', 3000);
 }
 
-// ── Password Change ───────────────────────────────────────────
+// ── Password Change ────────────────────────────────────────────
 function openPwModal() {
-  document.getElementById('pw-cur').value = '';
-  document.getElementById('pw-new').value = '';
-  document.getElementById('pw-new2').value = '';
+  ['pw-cur','pw-new','pw-new2'].forEach(id => document.getElementById(id).value = '');
   document.getElementById('pw-err').textContent = '';
   document.getElementById('pwmodal').style.display = 'flex';
 }
-function closePwModal() {
-  document.getElementById('pwmodal').style.display = 'none';
-}
+function closePwModal() { document.getElementById('pwmodal').style.display = 'none'; }
+
 async function changePw() {
-  const cur  = document.getElementById('pw-cur').value;
-  const nw   = document.getElementById('pw-new').value;
-  const nw2  = document.getElementById('pw-new2').value;
-  const err  = document.getElementById('pw-err');
+  const cur = document.getElementById('pw-cur').value;
+  const nw  = document.getElementById('pw-new').value;
+  const nw2 = document.getElementById('pw-new2').value;
+  const err = document.getElementById('pw-err');
   err.textContent = '';
   if (!cur || !nw || !nw2) { err.textContent = 'Alle Felder ausfüllen.'; return; }
-  if (nw !== nw2) { err.textContent = 'Passwörter stimmen nicht überein.'; return; }
-  if (nw.length < 6) { err.textContent = 'Mindestens 6 Zeichen.'; return; }
+  if (nw !== nw2)           { err.textContent = 'Passwörter stimmen nicht überein.'; return; }
+  if (nw.length < 6)        { err.textContent = 'Mindestens 6 Zeichen.'; return; }
   try {
     await api('/api/change-password', 'POST', { currentPassword: cur, newPassword: nw });
     closePwModal();
     notify('Passwort geändert – bitte neu anmelden', 'g');
-    setTimeout(() => { localStorage.removeItem('sk_token'); TOKEN = ''; location.reload(); }, 1800);
+    setTimeout(() => doLogout(), 1800);
   } catch(e) { err.textContent = e.message; }
 }
 </script>
