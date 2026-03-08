@@ -19,7 +19,7 @@ warn()    { echo -e "${Y}[⚠]${N} $1"; }
 error()   { echo -e "${R}[✖]${N} $1"; exit 1; }
 
 # ── GitHub Quelle (anpassen nach Fork/Upload) ─────────────────
-GITHUB_RAW="https://raw.githubusercontent.com/DEIN_USER/skitaru-panel/main"
+GITHUB_RAW="https://raw.githubusercontent.com/Skitaru/skitaru-panel/main"
 
 # ── Root Check ────────────────────────────────────────────────
 [[ $EUID -ne 0 ]] && error "Bitte als root ausführen: sudo bash install.sh"
