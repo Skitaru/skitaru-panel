@@ -27,7 +27,7 @@ const wss    = new WebSocketServer({ server });
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: false }));
 
-// ── Sessions ──────────────────────────────────────────────────
+// -- Sessions --------------------------------------------------
 const sessions = new Map();
 
 function hashPassword(pw, salt) {
@@ -46,7 +46,7 @@ function authMw(req, res, next) {
   res.status(401).json({ error: 'Unauthorized' });
 }
 
-// ── Multer ────────────────────────────────────────────────────
+// -- Multer ----------------------------------------------------
 const upload = multer({
   storage: multer.diskStorage({
     destination: (req, file, cb) => {
@@ -66,7 +66,7 @@ function safeServerPath(serverName, subPath) {
   return target.startsWith(base) ? target : null;
 }
 
-// ── Helpers ───────────────────────────────────────────────────
+// -- Helpers ---------------------------------------------------
 function run(cmd) {
   return new Promise((res, rej) =>
     exec(cmd, { maxBuffer: 10 * 1024 * 1024 }, (err, out, err2) =>
@@ -98,7 +98,7 @@ function downloadFile(fileUrl, dest, onProgress) {
   });
 }
 
-// ── Port Check ────────────────────────────────────────────────
+// -- Port Check ------------------------------------------------
 function isPortFree(port) {
   return new Promise(resolve => {
     const s = net.createServer();
@@ -119,7 +119,7 @@ async function findFreePort(start) {
   return port;
 }
 
-// ── Docker ───────────────────────────────────────────────────
+// -- Docker ---------------------------------------------------
 async function listContainers() {
   try {
     const out = await run(`docker ps -a --format '{"id":"{{.ID}}","name":"{{.Names}}","status":"{{.Status}}","image":"{{.Image}}","ports":"{{.Ports}}","created":"{{.RunningFor}}"}'`);
@@ -134,7 +134,7 @@ async function containerStats(name) {
   } catch { return null; }
 }
 
-// ── RCON ─────────────────────────────────────────────────────
+// -- RCON -----------------------------------------------------
 function rconSend(host, port, password, command) {
   return new Promise((resolve, reject) => {
     const socket = net.createConnection(port, host);
@@ -171,10 +171,10 @@ function rconSend(host, port, password, command) {
   });
 }
 
-// ── Static ────────────────────────────────────────────────────
+// -- Static ----------------------------------------------------
 app.use(express.static(path.join(__dirname, 'public')));
 
-// ── System ────────────────────────────────────────────────────
+// -- System ----------------------------------------------------
 app.get('/api/system', authMw, async (_req, res) => {
   try {
     const out = await run("grep MemTotal /proc/meminfo");
@@ -183,7 +183,7 @@ app.get('/api/system', authMw, async (_req, res) => {
   } catch { res.json({ ramGB: 64 }); }
 });
 
-// ── Auth ──────────────────────────────────────────────────────
+// -- Auth ------------------------------------------------------
 app.post('/api/login', (req, res) => {
   const { username, password } = req.body;
   if (!username || !password) return res.status(400).json({ error: 'Fehlende Felder' });
@@ -211,7 +211,7 @@ app.post('/api/change-password', authMw, (req, res) => {
   res.json({ ok: true });
 });
 
-// ── Containers ────────────────────────────────────────────────
+// -- Containers ------------------------------------------------
 app.get('/api/containers', authMw, async (_req, res) => res.json(await listContainers()));
 app.get('/api/containers/:name/stats', authMw, async (req, res) => res.json(await containerStats(req.params.name) || {}));
 
@@ -223,7 +223,7 @@ app.post('/api/containers/:name/command', authMw, async (req, res) => {
   // Strip leading slash if present (players habit of typing /say etc.)
   if (command.startsWith('/')) command = command.slice(1);
 
-  // Send directly to Java process stdin via docker exec → /proc/1/fd/0
+  // Send directly to Java process stdin via docker exec ? /proc/1/fd/0
   // This avoids RCON entirely – output appears naturally in the log stream
   try {
     await new Promise((resolve, reject) => {
@@ -262,14 +262,62 @@ app.delete('/api/containers/:name', authMw, async (req, res) => {
 });
 
 
-// ── Server Info ───────────────────────────────────────────────
+// -- Server Info -----------------------------------------------
 app.get('/api/servers/:name/info', authMw, (req, res) => {
   const p = `/opt/${req.params.name}/panel.json`;
   if (!fs.existsSync(p)) return res.status(404).json({});
   res.json(JSON.parse(fs.readFileSync(p, 'utf8')));
 });
 
-// ── Files ─────────────────────────────────────────────────────
+// -- JVM Flags -------------------------------------------------
+app.post('/api/servers/:name/flags', authMw, async (req, res) => {
+  const { name } = req.params;
+  if (!/^[a-z0-9-]+$/.test(name)) return res.status(400).json({ error: 'Ungültiger Name' });
+  const serverDir = `/opt/${name}`;
+  const panelPath = `${serverDir}/panel.json`;
+  if (!fs.existsSync(panelPath)) return res.status(404).json({ error: 'Server nicht gefunden' });
+
+  try {
+    const info = JSON.parse(fs.readFileSync(panelPath, 'utf8'));
+    const extra = (req.body.extraFlags || '').trim();
+
+    // Persist extra flags in panel.json
+    info.extraFlags = extra;
+    fs.writeFileSync(panelPath, JSON.stringify(info, null, 2));
+
+    const baseJvm = `-Xms512M -Xmx${info.ram} -XX:+UseG1GC -XX:+ParallelRefProcEnabled -XX:MaxGCPauseMillis=200 -XX:+UnlockExperimentalVMOptions -XX:+DisableExplicitGC -XX:+AlwaysPreTouch -XX:G1NewSizePercent=30 -XX:G1MaxNewSizePercent=40 -XX:G1HeapRegionSize=8M -XX:G1ReservePercent=20 -XX:G1HeapWastePercent=5 -XX:G1MixedGCCountTarget=4 -XX:InitiatingHeapOccupancyPercent=15 -XX:G1MixedGCLiveThresholdPercent=90 -XX:G1RSetUpdatingPauseTimePercent=5 -XX:SurvivorRatio=32 -XX:+PerfDisableSharedMem -XX:MaxTenuringThreshold=1`;
+    const jvmOpts = extra ? `${baseJvm} ${extra}` : baseJvm;
+
+    // Rewrite Dockerfile with new JVM opts
+    const dockerfile =
+`FROM eclipse-temurin:21-jre-jammy
+RUN useradd -m -u 1001 -s /bin/bash minecraft
+WORKDIR /server
+RUN chown minecraft:minecraft /server
+ENV JVM_OPTS="${jvmOpts}"
+EXPOSE ${info.port}/tcp ${info.port}/udp ${info.rconPort}/tcp
+STOPSIGNAL SIGTERM
+USER minecraft
+CMD ["sh", "-c", "exec java $JVM_OPTS -jar /server/paper.jar --nogui"]
+`;
+    fs.writeFileSync(`${serverDir}/Dockerfile`, dockerfile);
+
+    // Stop ? rebuild ? start
+    await run(`docker stop -t 15 ${name}`).catch(() => {});
+    await new Promise((resolve, reject) => {
+      const proc = spawn('docker', ['compose', 'build', '--progress=plain'], { cwd: serverDir });
+      proc.on('close', code => code === 0 ? resolve() : reject(new Error(`Build fehlgeschlagen (exit ${code})`)));
+    });
+    await new Promise((resolve, reject) => {
+      const proc = spawn('docker', ['compose', 'up', '-d'], { cwd: serverDir });
+      proc.on('close', code => code === 0 ? resolve() : reject(new Error(`Start fehlgeschlagen (exit ${code})`)));
+    });
+
+    res.json({ ok: true });
+  } catch(e) { res.status(500).json({ error: String(e) }); }
+});
+
+// -- Files -----------------------------------------------------
 app.get('/api/files/:name', authMw, (req, res) => {
   const dir = safeServerPath(req.params.name, req.query.dir || '');
   if (!dir) return res.status(400).json({ error: 'Ungültiger Pfad' });
@@ -332,7 +380,91 @@ app.post('/api/files/:name/mkdir', authMw, (req, res) => {
   catch(e) { res.status(500).json({ error: String(e) }); }
 });
 
-// ── Paper Versions ────────────────────────────────────────────
+// -- Log Download ----------------------------------------------
+app.get('/api/containers/:name/logs/download', authMw, async (req, res) => {
+  const { name } = req.params;
+  const lines = parseInt(req.query.lines) || 5000;
+  const ts = new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19);
+  res.setHeader('Content-Disposition', `attachment; filename="${name}-${ts}.log"`);
+  res.setHeader('Content-Type', 'text/plain; charset=utf-8');
+  const proc = spawn('docker', ['logs', '--tail', String(lines), name]);
+  proc.stdout.pipe(res);
+  proc.stderr.pipe(res);
+  req.on('close', () => proc.kill());
+});
+
+// -- Backups ---------------------------------------------------
+app.get('/api/servers/:name/backups', authMw, (req, res) => {
+  const dir = `/opt/${req.params.name}/backups`;
+  if (!fs.existsSync(dir)) return res.json([]);
+  try {
+    const files = fs.readdirSync(dir)
+      .filter(f => f.endsWith('.tar.gz'))
+      .map(f => {
+        const fp = path.join(dir, f);
+        const s  = fs.statSync(fp);
+        return { name: f, size: s.size, created: s.mtime.toISOString() };
+      })
+      .sort((a, b) => new Date(b.created) - new Date(a.created));
+    res.json(files);
+  } catch(e) { res.status(500).json({ error: String(e) }); }
+});
+
+app.post('/api/servers/:name/backup', authMw, async (req, res) => {
+  const { name } = req.params;
+  if (!/^[a-z0-9-]+$/.test(name)) return res.status(400).json({ error: 'Ungültiger Name' });
+  const dataDir   = `/opt/${name}/data`;
+  const backupDir = `/opt/${name}/backups`;
+  if (!fs.existsSync(dataDir)) return res.status(404).json({ error: 'Kein data-Verzeichnis' });
+  fs.mkdirSync(backupDir, { recursive: true });
+  const ts   = new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19);
+  const file = `${name}-${ts}.tar.gz`;
+  const dest = path.join(backupDir, file);
+  try {
+    await run(`tar -czf "${dest}" -C "/opt/${name}" data`);
+    const size = fs.statSync(dest).size;
+    res.json({ ok: true, name: file, size, created: new Date().toISOString() });
+  } catch(e) { res.status(500).json({ error: String(e) }); }
+});
+
+app.delete('/api/servers/:name/backup', authMw, (req, res) => {
+  const { name } = req.params;
+  const file = req.query.file;
+  if (!file || !/^[a-zA-Z0-9._-]+\.tar\.gz$/.test(file)) return res.status(400).json({ error: 'Ungültiger Dateiname' });
+  const fp = path.join(`/opt/${name}/backups`, file);
+  if (!fp.startsWith(`/opt/${name}/backups/`) || !fs.existsSync(fp)) return res.status(404).json({ error: 'Nicht gefunden' });
+  try { fs.unlinkSync(fp); res.json({ ok: true }); }
+  catch(e) { res.status(500).json({ error: String(e) }); }
+});
+
+app.post('/api/servers/:name/backup/restore', authMw, async (req, res) => {
+  const { name } = req.params;
+  const file = req.query.file;
+  if (!file || !/^[a-zA-Z0-9._-]+\.tar\.gz$/.test(file)) return res.status(400).json({ error: 'Ungültiger Dateiname' });
+  const fp = path.join(`/opt/${name}/backups`, file);
+  if (!fp.startsWith(`/opt/${name}/backups/`) || !fs.existsSync(fp)) return res.status(404).json({ error: 'Nicht gefunden' });
+  const serverDir = `/opt/${name}`;
+  try {
+    await run(`docker stop -t 15 ${name}`).catch(() => {});
+    // Remove current data, extract backup
+    await run(`rm -rf "${serverDir}/data"`);
+    await run(`tar -xzf "${fp}" -C "${serverDir}"`);
+    await run(`docker start ${name}`);
+    res.json({ ok: true });
+  } catch(e) { res.status(500).json({ error: String(e) }); }
+});
+
+app.get('/api/servers/:name/backup/download', authMw, (req, res) => {
+  const { name } = req.params;
+  const file = req.query.file;
+  if (!file || !/^[a-zA-Z0-9._-]+\.tar\.gz$/.test(file)) return res.status(400).end('Ungültig');
+  const fp = path.join(`/opt/${name}/backups`, file);
+  if (!fp.startsWith(`/opt/${name}/backups/`) || !fs.existsSync(fp)) return res.status(404).end('Nicht gefunden');
+  res.setHeader('Content-Disposition', `attachment; filename="${file}"`);
+  res.sendFile(fp);
+});
+
+// -- Paper Versions --------------------------------------------
 app.get('/api/paper/versions', authMw, async (_req, res) => {
   try {
     const data = await fetchJson('https://api.papermc.io/v2/projects/paper');
@@ -340,7 +472,7 @@ app.get('/api/paper/versions', authMw, async (_req, res) => {
   } catch(e) { res.status(500).json({ error: String(e) }); }
 });
 
-// ── WebSocket ─────────────────────────────────────────────────
+// -- WebSocket -------------------------------------------------
 wss.on('connection', (ws, req) => {
   const parsed = url.parse(req.url, true);
   const token  = parsed.query._t;
@@ -355,7 +487,7 @@ function handleLogs(ws, name) {
   const proc = spawn('docker', ['logs', '-f', '--tail', '400', name]);
   proc.stdout.on('data', d => send(d.toString()));
   proc.stderr.on('data', d => send(d.toString()));
-  proc.on('close', () => ws.readyState === 1 && ws.send(JSON.stringify({ type: 'log', data: '\x1b[33m► Log-Stream beendet.\x1b[0m\n' })));
+  proc.on('close', () => ws.readyState === 1 && ws.send(JSON.stringify({ type: 'log', data: '\x1b[33m? Log-Stream beendet.\x1b[0m\n' })));
   ws.on('close', () => proc.kill());
   ws.on('error', () => proc.kill());
 }
@@ -375,9 +507,9 @@ async function buildServer(config, log) {
   name = (name || 'minecraft-server').toLowerCase().replace(/[^a-z0-9-]/g, '-').replace(/^-+|-+$/g, '');
 
   const requestedPort = parseInt(port) || 25565;
-  log(`► Prüfe Port ${requestedPort}...`);
+  log(`? Prüfe Port ${requestedPort}...`);
   port = await findFreePort(requestedPort);
-  if (port !== requestedPort) log(`  Port ${requestedPort} belegt → verwende Port ${port}.`);
+  if (port !== requestedPort) log(`  Port ${requestedPort} belegt ? verwende Port ${port}.`);
   else log(`  Port ${port} ist frei.`);
 
   const rconPort  = await findFreePort(port + 10);
@@ -386,7 +518,7 @@ async function buildServer(config, log) {
 
   if (fs.existsSync(serverDir)) throw new Error(`Server "${name}" existiert bereits`);
 
-  log(`► Suche Build für Paper ${version}...`);
+  log(`? Suche Build für Paper ${version}...`);
   const buildData   = await fetchJson(`https://api.papermc.io/v2/projects/paper/versions/${version}/builds`);
   const builds      = buildData.builds;
   if (!builds?.length) throw new Error(`Kein Build für ${version}`);
@@ -395,10 +527,10 @@ async function buildServer(config, log) {
   const dlUrl       = `https://api.papermc.io/v2/projects/paper/versions/${version}/builds/${latestBuild}/downloads/${jarName}`;
   log(`  Build ${latestBuild} gefunden.`);
 
-  log(`► Erstelle Verzeichnisse...`);
+  log(`? Erstelle Verzeichnisse...`);
   fs.mkdirSync(dataDir, { recursive: true });
 
-  log(`► Lade paper.jar herunter...`);
+  log(`? Lade paper.jar herunter...`);
   const jarPath = `${dataDir}/paper.jar`;
   await downloadFile(dlUrl, jarPath, pct => log(`  Download ${pct}%`, 'progress'));
   try { fs.chownSync(dataDir, 1001, 1001); fs.chownSync(jarPath, 1001, 1001); } catch {}
@@ -456,7 +588,7 @@ CMD ["sh", "-c", "exec java $JVM_OPTS -jar /server/paper.jar --nogui"]
     stop_grace_period: 30s
 `);
 
-  log(`► Baue Docker Image...`);
+  log(`? Baue Docker Image...`);
   await new Promise((resolve, reject) => {
     const proc = spawn('docker', ['compose', 'build', '--progress=plain'], { cwd: serverDir });
     proc.stdout.on('data', d => log(d.toString().trimEnd()));
@@ -464,7 +596,7 @@ CMD ["sh", "-c", "exec java $JVM_OPTS -jar /server/paper.jar --nogui"]
     proc.on('close', code => code === 0 ? resolve() : reject(new Error(`Build fehlgeschlagen (code ${code})`)));
   });
 
-  log(`► Starte Container...`);
+  log(`? Starte Container...`);
   await new Promise((resolve, reject) => {
     const proc = spawn('docker', ['compose', 'up', '-d'], { cwd: serverDir });
     proc.stdout.on('data', d => log(d.toString().trimEnd()));
@@ -472,7 +604,7 @@ CMD ["sh", "-c", "exec java $JVM_OPTS -jar /server/paper.jar --nogui"]
     proc.on('close', code => code === 0 ? resolve() : reject(new Error(`Start fehlgeschlagen (code ${code})`)));
   });
 
-  log(`✔ Server "${name}" läuft auf Port ${port}!`, 'success');
+  log(`? Server "${name}" läuft auf Port ${port}!`, 'success');
 }
 
 server.listen(PORT, '0.0.0.0', () => console.log(`\x1b[32m[Skitaru Panel]\x1b[0m http://0.0.0.0:${PORT}`));
