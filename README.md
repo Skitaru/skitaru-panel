@@ -34,10 +34,11 @@ bash <(curl -fsSL https://raw.githubusercontent.com/Skitaru/skitaru-panel/main/i
 - Login-System mit Admin-Account
 - PaperMC Server erstellen (Version wählbar)
 - Live-Konsole per WebSocket
-- Befehle via RCON senden
+- Befehle via Konsole senden
 - Start / Stop / Restart / Löschen
 - Datei-Manager (Upload, Download, Löschen, Ordner erstellen)
 - CPU & RAM Live-Statistiken
+- Clean Design
 
 ## Manuell aktualisieren
 
