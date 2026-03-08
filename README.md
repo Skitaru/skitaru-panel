@@ -15,16 +15,11 @@ skitaru-panel/
 └── README.md
 ```
 
-## GitHub einrichten
-
-1. Dieses Repo auf GitHub als **öffentliches Repo** hochladen
-2. In `install.sh` Zeile anpassen:
-   ```bash
-   GITHUB_RAW="https://raw.githubusercontent.com/DEIN_USER/skitaru-panel/main"
-   ```
-   → `DEIN_USER` durch deinen GitHub-Benutzernamen ersetzen
-
 ## One-Liner Installation
+
+```bash
+apt-get update -y && apt-get install -y curl
+```
 
 ```bash
 bash <(curl -fsSL https://raw.githubusercontent.com/DEIN_USER/skitaru-panel/main/install.sh)
