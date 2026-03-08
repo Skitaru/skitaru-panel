@@ -36,6 +36,7 @@ bash <(curl -fsSL https://raw.githubusercontent.com/Skitaru/skitaru-panel/main/i
 - Live-Konsole per WebSocket
 - Befehle via Konsole senden
 - Start / Stop / Restart / Löschen
+- Backup erstellen
 - Datei-Manager (Upload, Download, Löschen, Ordner erstellen)
 - CPU & RAM Live-Statistiken
 - Clean Design
