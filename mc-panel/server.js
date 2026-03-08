@@ -196,6 +196,20 @@ app.post('/api/login', (req, res) => {
 });
 app.post('/api/logout', authMw, (req, res) => { sessions.delete(req.headers['x-auth-token']); res.json({ ok: true }); });
 app.get('/api/me', authMw, (req, res) => { const s = sessions.get(req.headers['x-auth-token']); res.json({ username: s?.username || 'admin' }); });
+app.post('/api/change-password', authMw, (req, res) => {
+  const { currentPassword, newPassword } = req.body;
+  if (!currentPassword || !newPassword) return res.status(400).json({ error: 'Fehlende Felder' });
+  if (newPassword.length < 6) return res.status(400).json({ error: 'Passwort mind. 6 Zeichen' });
+  const config = loadConfig();
+  if (hashPassword(currentPassword, config.salt) !== config.passwordHash)
+    return res.status(401).json({ error: 'Aktuelles Passwort falsch' });
+  const newSalt = crypto.randomBytes(16).toString('hex');
+  config.salt = newSalt;
+  config.passwordHash = hashPassword(newPassword, newSalt);
+  fs.writeFileSync(CONFIG_PATH, JSON.stringify(config, null, 2));
+  sessions.clear(); // invalidate all sessions
+  res.json({ ok: true });
+});
 
 // ── Containers ────────────────────────────────────────────────
 app.get('/api/containers', authMw, async (_req, res) => res.json(await listContainers()));
@@ -416,8 +430,6 @@ CMD ["sh", "-c", "exec java $JVM_OPTS -jar /server/paper.jar --nogui"]
     build: { context: ., dockerfile: Dockerfile }
     container_name: ${name}
     restart: unless-stopped
-    stdin_open: true
-    tty: true
     ports:
       - "${port}:${port}/tcp"
       - "${port}:${port}/udp"
