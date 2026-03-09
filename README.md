@@ -2,19 +2,6 @@
 
 Minecraft Docker Web-Panel für Debian 12/13.
 
-## Repo-Struktur
-
-```
-skitaru-panel/
-├── install.sh              ← Haupt-Installer
-├── mc-panel/
-│   ├── server.js
-│   ├── package.json
-│   └── public/
-│       └── index.html
-└── README.md
-```
-
 ## One-Liner Installation (Eigentlich Two-Liner)
 
 1.
