@@ -300,8 +300,9 @@ if [ "$REINSTALL" = false ] || [ ! -f "$PANEL_DIR/config.json" ]; then
     if [ "$PW" != "$PW2" ]; then ERR="$T_PW_MISMATCH"; continue; fi
     break
   done
-  HASH=$(echo -n "$PW" | openssl dgst -sha256 -hmac "skitaru-panel-secret" | awk '{print $2}')
-  echo "{\"username\":\"${ADMIN_USER}\",\"passwordHash\":\"$HASH\"}" > "$PANEL_DIR/config.json"
+  SALT=$(openssl rand -hex 16)
+  HASH=$(echo -n "$PW" | openssl dgst -sha256 -hmac "$SALT" | awk '{print $2}')
+  echo "{\"username\":\"${ADMIN_USER}\",\"salt\":\"$SALT\",\"passwordHash\":\"$HASH\"}" > "$PANEL_DIR/config.json"
 else
   warn "$T_WARN"
 fi
