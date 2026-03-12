@@ -155,7 +155,6 @@ pick_language() {
     T_PW_CONFIRM="Passwort bestätigen"; T_PW_MISMATCH="Passwörter stimmen nicht überein. Erneut versuchen."
     T_PW_SHORT="Passwort muss mindestens 8 Zeichen lang sein."
     T_USER_PROMPT="Benutzername (Enter für 'admin')"
-    T_USER_PROMPT="Benutzername (Enter für 'admin')"
     T_URL="Panel erreichbar unter"; T_SERVICE="Dienst verwalten"
     T_ALREADY="Panel ist bereits installiert."; T_REINSTALL="Neu installieren? Alle Daten bleiben erhalten. [j/N]: "
     T_SKIP="Installation abgebrochen."; T_UPDATING="Aktualisiere vorhandene Installation..."
@@ -170,7 +169,6 @@ pick_language() {
     T_DONE="Installation complete"; T_PW_PROMPT="Admin password"
     T_PW_CONFIRM="Confirm password"; T_PW_MISMATCH="Passwords do not match. Try again."
     T_PW_SHORT="Password must be at least 8 characters."
-    T_USER_PROMPT="Username (Enter for 'admin')"
     T_USER_PROMPT="Username (Enter for 'admin')"
     T_URL="Panel available at"; T_SERVICE="Manage service"
     T_ALREADY="Panel is already installed."; T_REINSTALL="Reinstall? All data will be kept. [y/N]: "
@@ -289,7 +287,7 @@ if [ "$REINSTALL" = false ] || [ ! -f "$PANEL_DIR/config.json" ]; then
   while true; do
     step 8 $TOTAL_STEPS "$T_STEP_PW"
     [ -n "$ERR" ] && warn "$ERR" && echo
-    printf "  ${W}Benutzername (Enter = admin): ${N}"
+    printf "  ${W}%s: ${N}" "$T_USER_PROMPT"
     read -r ADMIN_USER
     [ -z "$ADMIN_USER" ] && ADMIN_USER="admin"
     printf "  ${W}%s: ${N}" "$T_PW_PROMPT"
