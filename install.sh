@@ -281,39 +281,45 @@ EOF
 run "systemctl daemon-reload" systemctl daemon-reload
 run "Enable & start service" bash -c "systemctl enable $SERVICE_NAME && systemctl restart $SERVICE_NAME"
 
-# ── Step 8: Password ─────────────────────────────────────────────
-step 8 $TOTAL_STEPS "$T_STEP_PW"
+# ── Step 8: Username + Password ──────────────────────────────────
 if [ "$REINSTALL" = false ] || [ ! -f "$PANEL_DIR/config.json" ]; then
+  ADMIN_USER=""
+  PW=""
+  ERR=""
   while true; do
-    br
+    step 8 $TOTAL_STEPS "$T_STEP_PW"
+    [ -n "$ERR" ] && warn "$ERR" && echo
+    printf "  ${W}Benutzername (Enter = admin): ${N}"
+    read -r ADMIN_USER
+    [ -z "$ADMIN_USER" ] && ADMIN_USER="admin"
     printf "  ${W}%s: ${N}" "$T_PW_PROMPT"
     read -rs PW; echo
-    if [ ${#PW} -lt 1 ]; then warn "$T_PW_SHORT"; continue; fi
+    if [ ${#PW} -lt 1 ]; then ERR="$T_PW_SHORT"; continue; fi
     printf "  ${W}%s: ${N}" "$T_PW_CONFIRM"
     read -rs PW2; echo
-    [ "$PW" = "$PW2" ] && break
-    warn "$T_PW_MISMATCH"
+    if [ "$PW" != "$PW2" ]; then ERR="$T_PW_MISMATCH"; continue; fi
+    break
   done
   HASH=$(echo -n "$PW" | openssl dgst -sha256 -hmac "skitaru-panel-secret" | awk '{print $2}')
-  echo "{\"username\":\"admin\",\"passwordHash\":\"$HASH\"}" > "$PANEL_DIR/config.json"
-  ok "config.json"
+  echo "{\"username\":\"${ADMIN_USER}\",\"passwordHash\":\"$HASH\"}" > "$PANEL_DIR/config.json"
 else
   warn "$T_WARN"
 fi
 
 # ── Done ──────────────────────────────────────────────────────────
 IP=$(hostname -I | awk '{print $1}')
-br
-echo -e "  ${G}╔══════════════════════════════════════════════════════════╗${N}"
-echo -e "  ${G}║${N}  ${G}✔${N}  ${BOLD}${W}${T_DONE}${N}                               ${G}║${N}"
-echo -e "  ${G}╠══════════════════════════════════════════════════════════╣${N}"
-echo -e "  ${G}║${N}  ${D}${T_URL}:${N}                                   ${G}║${N}"
-echo -e "  ${G}║${N}  ${B}http://${IP}:${PORT}${N}                                ${G}║${N}"
-echo -e "  ${G}║${N}                                                          ${G}║${N}"
-echo -e "  ${G}║${N}  ${D}${T_SERVICE}:${N}                               ${G}║${N}"
-echo -e "  ${G}║${N}  ${DIM}systemctl restart ${SERVICE_NAME}${N}                  ${G}║${N}"
-echo -e "  ${G}║${N}  ${DIM}journalctl -u ${SERVICE_NAME} -f${N}                  ${G}║${N}"
-echo -e "  ${G}╚══════════════════════════════════════════════════════════╝${N}"
-br
-info "/tmp/skitaru-install.log"
-br
+clear
+echo
+echo -e "  ${G}▓▒░${N} ${BOLD}${W}SKITARU PANEL${N} ${DIM}·  Installer  v2.0${N}"
+echo -e "  ${G}────────────────────────────────${N}"
+echo
+echo -e "  ${G}✔${N}  ${BOLD}${W}${T_DONE}${N}"
+echo
+echo -e "  ${D}${T_URL}${N}"
+echo -e "  ${B}  http://${IP}:${PORT}${N}"
+echo
+echo -e "  ${D}${T_SERVICE}${N}"
+echo -e "  ${W}  systemctl restart ${SERVICE_NAME}${N}"
+echo
+echo -e "  ${G}────────────────────────────────${N}"
+echo
