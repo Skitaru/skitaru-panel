@@ -492,10 +492,6 @@ canvas.spark{width:100%;height:52px;display:block;image-rendering:pixelated}
     <div id="sfooter">
       <span id="sfoot">—</span>
       <div style="display:flex;gap:4px;align-items:center">
-        <div id="lang-switch">
-          <button id="ls-de" onclick="setLang('de')">DE</button>
-          <button id="ls-en" onclick="setLang('en')">EN</button>
-        </div>
         <button class="footbtn" onclick="openPwModal()" data-i18n="btn.pw" title="Passwort ändern">🔑</button>
         <button class="footbtn danger" onclick="doLogout()" data-i18n="btn.logout">Abmelden ⏎</button>
       </div>
@@ -532,7 +528,16 @@ canvas.spark{width:100%;height:52px;display:block;image-rendering:pixelated}
           <button class="btn bg"  id="bstart"   onclick="srvAction('start')">▶ Start</button>
           <button class="btn br"  id="bstop"    onclick="srvAction('stop')">■ Stop</button>
           <button class="btn bd2" id="brestart" onclick="srvAction('restart')">↺ Restart</button>
-          <button class="btn by"  id="bdelete"  onclick="confirmDel()">✕ Löschen</button>
+          <button class="btn by"  id="bdelete"  onclick="confirmDel()" data-i18n="btn.delete">✕ Löschen</button>
+          <div id="lang-dd" style="position:relative">
+            <button id="lang-dd-btn" onclick="toggleLangDd()" style="background:var(--s2);border:1px solid var(--border2);color:var(--text);font-family:var(--mono);font-size:13px;padding:0 10px;height:36px;cursor:pointer;border-radius:4px;display:flex;align-items:center;gap:6px">
+              <span id="lang-flag">🇩🇪</span><span style="color:var(--dim);font-size:11px">▾</span>
+            </button>
+            <div id="lang-menu" style="display:none;position:absolute;right:0;top:calc(100% + 4px);background:var(--s2);border:1px solid var(--border2);border-radius:4px;overflow:hidden;z-index:99;min-width:110px">
+              <button onclick="setLang('de');toggleLangDd()" style="display:flex;align-items:center;gap:8px;width:100%;background:none;border:none;padding:8px 14px;font-family:var(--mono);font-size:13px;color:var(--text);cursor:pointer;white-space:nowrap" onmouseover="this.style.background='var(--s3)'" onmouseout="this.style.background='none'">🇩🇪 Deutsch</button>
+              <button onclick="setLang('en');toggleLangDd()" style="display:flex;align-items:center;gap:8px;width:100%;background:none;border:none;padding:8px 14px;font-family:var(--mono);font-size:13px;color:var(--text);cursor:pointer;white-space:nowrap" onmouseover="this.style.background='var(--s3)'" onmouseout="this.style.background='none'">🇬🇧 English</button>
+            </div>
+          </div>
         </div>
       </div>
       <div id="tabs">
@@ -600,7 +605,7 @@ canvas.spark{width:100%;height:52px;display:block;image-rendering:pixelated}
           <button class="btn bg" id="bbkcreat" onclick="bkCreate()">💾 Backup erstellen</button>
           <span id="bk-status" style="font-size:13px;color:var(--dim);margin-left:4px"></span>
         </div>
-        <div id="bklist"><div class="bkempty"><span class="spin"></span> Lade...</div></div>
+        <div id="bklist"><div class="bkempty"><span class="spin"></span> <span data-i18n="side.loading">Lade...</span></div></div>
       </div>
     </div>
 
@@ -730,11 +735,11 @@ canvas.spark{width:100%;height:52px;display:block;image-rendering:pixelated}
 <!-- Confirm Delete -->
 <div id="confirm" onclick="if(event.target===this)closeCf()">
   <div class="cfbox">
-    <div class="cftitle">⚠ SERVER LÖSCHEN</div>
+    <div class="cftitle" data-i18n="del.title">⚠ SERVER LÖSCHEN</div>
     <div class="cfmsg" id="cfmsg"></div>
     <div class="cfacts">
       <button class="btn bd2" onclick="closeCf()">Abbrechen</button>
-      <button class="btn br"  id="cfok">Löschen</button>
+      <button class="btn br"  id="cfok" data-i18n="del.ok">Löschen</button>
     </div>
   </div>
 </div>
@@ -921,21 +926,21 @@ let _logRecoTimer=null;
 
 function connectLogs(name,silent){
   if(!silent){document.getElementById('cout').innerHTML='';}
-  if(!silent)appendLog(`\x1b[32m► Verbinde mit "${name}"...\x1b[0m`);
+  if(!silent)appendLog(`\x1b[32m► ${t('log.connecting')} "${name}"...\x1b[0m`);
   const proto=location.protocol==='https:'?'wss':'ws';
   const tailParam=silent?0:400;
   logWs=new WebSocket(`${proto}://${location.host}/ws/logs/${name}?_t=${TOKEN}&tail=${tailParam}`);
   logWs.onmessage=e=>{const m=JSON.parse(e.data);if(m.type==='log')appendLog(m.data);};
-  logWs.onerror=()=>appendLog('\x1b[31m► Verbindungsfehler.\x1b[0m');
+  logWs.onerror=()=>appendLog(`\x1b[31m► ${t('log.conerr')}\x1b[0m`);
   logWs.onclose=()=>{
     if(activeName!==name)return;
     const cont=containers.find(x=>x.name===name);
     if(cont&&getStatus(cont)==='running'){
-      appendLog('\x1b[33m► Stream unterbrochen – verbinde neu...\x1b[0m');
+      appendLog(`\x1b[33m► ${t('log.reconnect')}\x1b[0m`);
       clearTimeout(_logRecoTimer);
       _logRecoTimer=setTimeout(()=>{if(activeName===name)connectLogs(name,true);},2500);
     } else {
-      appendLog('\x1b[33m► Log-Stream beendet.\x1b[0m');
+      appendLog(`\x1b[33m► ${t('log.ended')}\x1b[0m`);
     }
   };
 }
@@ -992,7 +997,7 @@ async function sendCmd(){
   if(!cmd)return;
   input.value=''; appendLog(`> ${cmd}`,'info');
   try{const r=await api(`/api/containers/${activeName}/command`,'POST',{command:cmd});if(r.response)appendLog(r.response);}
-  catch(e){appendLog(`Fehler: ${e.message}`,'error');}
+  catch(e){appendLog(`${t('err.generic')}: ${e.message}`,'error');}
 }
 
 async function srvAction(action){
@@ -1001,7 +1006,8 @@ async function srvAction(action){
   ['bstart','bstop','brestart','bdelete'].forEach(id=>document.getElementById(id).disabled=true);
   try{
     await api(`/api/containers/${name}/${action}`,'POST');
-    notify(`${action} ausgeführt`,'g');
+    const actionLabels={start:t('notify.start'),stop:t('notify.stop'),restart:t('notify.restart')};
+    notify(`${actionLabels[action]||action}`,'g');
     await loadContainers();
     const cont=containers.find(x=>x.name===name);
     if(cont){
@@ -1047,7 +1053,7 @@ async function saveJvmFlags(){
   try{
     await api(`/api/servers/${activeName}/flags`,'POST',{extraFlags:flags});
     status.textContent='✔ Wird neu gebaut...'; status.style.color='var(--green)';
-    notify('JVM Flags gespeichert – Server wird neu gestartet','g');
+    notify(t('notify.jvm'),'g');
     setTimeout(()=>{status.textContent='';},4000);
   }catch(e){status.textContent='Fehler: '+e.message; status.style.color='var(--red)';}
 }
@@ -1150,7 +1156,7 @@ let fmCwd='';
 async function fmLoad(dir){
   if(dir!==undefined)fmCwd=dir;
   if(!activeName)return;
-  document.getElementById('fmlist').innerHTML='<div class="fmempty"><span class="spin"></span> Lade...</div>';
+  document.getElementById('fmlist').innerHTML=`<div class="fmempty"><span class="spin"></span> ${t('side.loading')}</div>`;
   try{const data=await api(`/api/files/${activeName}?dir=${encodeURIComponent(fmCwd)}`);fmRender(data.entries,data.cwd);}
   catch(e){document.getElementById('fmlist').innerHTML=`<div class="fmempty" style="color:var(--red)">Fehler: ${e.message}</div>`;}
 }
@@ -1202,7 +1208,7 @@ async function fmDownload(filePath){
 }
 async function fmEdit(filePath,name){
   document.getElementById('editor-title').textContent=name||filePath;
-  document.getElementById('editor-ta').value='Lade...';
+  document.getElementById('editor-ta').value=t('side.loading');
   document.getElementById('editor-overlay').dataset.path=filePath;
   document.getElementById('editor-overlay').classList.add('on');
   try{const r=await api(`/api/files/${activeName}/content?path=${encodeURIComponent(filePath)}`);document.getElementById('editor-ta').value=r.content;}
@@ -1267,7 +1273,7 @@ function selectType(type){
 async function loadVersions(type){
   type=type||currentServerType||'paper';
   const sel=document.getElementById('fver');
-  sel.innerHTML='<option>Lade...</option>';
+  sel.innerHTML=`<option>${t('side.loading')}</option>`;
   sel.dataset.stype=type;
 
   try{
@@ -1358,7 +1364,7 @@ function createServer(){
   if(!cfg.name){notify('Name erforderlich','r');return;}
   if(!isCustom&&!cfg.version){notify('Version erforderlich','r');return;}
   const out=document.getElementById('cbuildout'); out.innerHTML='';
-  const btn=document.getElementById('bcreat'); btn.disabled=true; btn.textContent='⏳ ERSTELLE...';
+  const btn=document.getElementById('bcreat'); btn.disabled=true; btn.textContent=t('form.creating');
   const proto=location.protocol==='https:'?'wss':'ws';
   const ws=new WebSocket(`${proto}://${location.host}/ws/create?_t=${TOKEN}`);
   ws.onopen=()=>ws.send(JSON.stringify(cfg));
@@ -1395,7 +1401,7 @@ function createServer(){
     queueBuildLine(cls, m.data, isProgress);
     if(m.type==='success'){
       setTimeout(async()=>{
-        ws.close(); btn.disabled=false; btn.textContent='▶ SERVER ERSTELLEN';
+        ws.close(); btn.disabled=false; btn.textContent=t('form.create');
         const nn=cfg.name.toLowerCase().replace(/[^a-z0-9-]/g,'-').replace(/^-+|-+$/g,'');
         loadingServers.add(nn); await loadContainers();
         const found=containers.find(c=>c.name===nn);
@@ -1403,9 +1409,9 @@ function createServer(){
         startLoadingPoll(nn);
       },1200);
     }
-    if(m.type==='error'){btn.disabled=false;btn.textContent='▶ SERVER ERSTELLEN';}
+    if(m.type==='error'){btn.disabled=false;btn.textContent=t('form.create');}
   };
-  ws.onerror=()=>{notify('WebSocket Fehler','r');btn.disabled=false;btn.textContent='▶ SERVER ERSTELLEN';};
+  ws.onerror=()=>{notify(t('err.ws'),'r');btn.disabled=false;btn.textContent=t('form.create');};
 }
 
 
@@ -1417,7 +1423,7 @@ async function bkLoad(){
   try{
     const bks=await api(`/api/servers/${activeName}/backups`);
     if(!bks.length){
-      list.innerHTML='<div class="bkempty">Noch keine Backups vorhanden.<br><b>💾 Backup erstellen</b> klicken um zu starten.</div>';
+      list.innerHTML=`<div class="bkempty">${t('bk.none')}</div>`;
       return;
     }
     list.innerHTML=bks.map(b=>{
@@ -1524,7 +1530,7 @@ async function changePw(){
 const TRANSLATIONS = {
   de: {
     'login.user':'Benutzername','login.pw':'Passwort','login.btn':'▶ ANMELDEN',
-    'btn.pw':'🔑','btn.logout':'Abmelden ⏎',
+    'btn.pw':'🔑','btn.logout':'Abmelden ⏎','btn.delete':'✕ Löschen',
     'side.loading':'Lade...',
     'create.title':'⊞ NEUER SERVER','create.cancel':'✕ Abbrechen',
     'form.type':'Server Typ','form.platform':'Plattform','form.server':'Server',
@@ -1549,7 +1555,10 @@ const TRANSLATIONS = {
     'welcome.title':'Willkommen bei Skitaru Panel',
     'welcome.sub':'Wähle links einen Server oder erstelle einen neuen.',
     'del.confirm':'Löschen bestätigen','del.cancel':'Abbrechen','del.ok':'Löschen',
-    'notify.start':'gestartet','notify.stop':'gestoppt','notify.restart':'neugestartet',
+    'notify.start':'Gestartet','notify.stop':'Gestoppt','notify.restart':'Neugestartet','notify.jvm':'JVM Flags gespeichert – Server wird neu gestartet',
+    'log.connecting':'Verbinde mit','log.conerr':'Verbindungsfehler.','log.reconnect':'Stream unterbrochen – verbinde neu...','log.ended':'Log-Stream beendet.','log.waiting':'Warte auf Container...',
+    'form.creating':'⏳ ERSTELLE...','err.ws':'WebSocket Fehler','err.generic':'Fehler',
+    'del.title':'⚠ SERVER LÖSCHEN',
     'ver.note':'ℹ Nicht jede Minecraft Patch-Version hat einen Paper-Build (z.B. gibt es kein Paper 1.8.9 – nur 1.8.8).',
     'vel.backends':'Backend-Server','vel.backends.hint':'Name = Host:Port, eine pro Zeile',
     'vel.note.title':'🚀 Velocity ist ein Reverse-Proxy – kein eigenständiger Spielserver.',
@@ -1559,7 +1568,7 @@ const TRANSLATIONS = {
   },
   en: {
     'login.user':'Username','login.pw':'Password','login.btn':'▶ LOGIN',
-    'btn.pw':'🔑','btn.logout':'Logout ⏎',
+    'btn.pw':'🔑','btn.logout':'Logout ⏎','btn.delete':'✕ Delete',
     'side.loading':'Loading...',
     'create.title':'⊞ NEW SERVER','create.cancel':'✕ Cancel',
     'form.type':'Server Type','form.platform':'Platform','form.server':'Server',
@@ -1584,7 +1593,10 @@ const TRANSLATIONS = {
     'welcome.title':'Welcome to Skitaru Panel',
     'welcome.sub':'Select a server on the left or create a new one.',
     'del.confirm':'Confirm Delete','del.cancel':'Cancel','del.ok':'Delete',
-    'notify.start':'started','notify.stop':'stopped','notify.restart':'restarted',
+    'notify.start':'Started','notify.stop':'Stopped','notify.restart':'Restarted','notify.jvm':'JVM flags saved — server is restarting',
+    'log.connecting':'Connecting to','log.conerr':'Connection error.','log.reconnect':'Stream interrupted — reconnecting...','log.ended':'Log stream ended.','log.waiting':'Waiting for container...',
+    'form.creating':'⏳ CREATING...','err.ws':'WebSocket error','err.generic':'Error',
+    'del.title':'⚠ DELETE SERVER',
     'ver.note':'ℹ Not every Minecraft patch version has a Paper build (e.g. there is no Paper 1.8.9 — only 1.8.8).',
     'vel.backends':'Backend Servers','vel.backends.hint':'Name = Host:Port, one per line',
     'vel.note.title':'🚀 Velocity is a reverse proxy — not a standalone game server.',
@@ -1599,9 +1611,22 @@ let _lang = localStorage.getItem('skitaru_lang') || (navigator.language.startsWi
 function setLang(lang) {
   _lang = lang;
   localStorage.setItem('skitaru_lang', lang);
-  document.querySelectorAll('#lang-switch button').forEach(b => b.classList.toggle('active', b.id === 'ls-' + lang));
+  const flags = {de:'🇩🇪', en:'🇬🇧'};
+  const fl = document.getElementById('lang-flag');
+  if(fl) fl.textContent = flags[lang] || '🌐';
   applyTranslations();
 }
+function toggleLangDd() {
+  const m = document.getElementById('lang-menu');
+  if(m) m.style.display = m.style.display === 'none' ? 'block' : 'none';
+}
+document.addEventListener('click', e => {
+  const dd = document.getElementById('lang-dd');
+  if(dd && !dd.contains(e.target)) {
+    const m = document.getElementById('lang-menu');
+    if(m) m.style.display = 'none';
+  }
+});
 
 function t(key) {
   return (TRANSLATIONS[_lang] || TRANSLATIONS.de)[key] || TRANSLATIONS.de[key] || key;
@@ -1627,7 +1652,9 @@ function applyTranslations() {
 
 // Init on load
 document.addEventListener('DOMContentLoaded', () => {
-  document.querySelectorAll('#lang-switch button').forEach(b => b.classList.toggle('active', b.id === 'ls-' + _lang));
+  const _initFlags = {de:'🇩🇪', en:'🇬🇧'};
+  const _fl = document.getElementById('lang-flag');
+  if(_fl) _fl.textContent = _initFlags[_lang] || '🌐';
   applyTranslations();
 });
 
