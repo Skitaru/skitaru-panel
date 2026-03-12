@@ -23,7 +23,7 @@
 ## ⚡ One-Line Install
 
 ```bash
-bash <(curl -fsSL https://raw.githubusercontent.com/Skitaru/skitaru-panel/main/install.sh)
+bash <(curl -fsSL https://raw.githubusercontent.com/Skitaru/skitaru-panel/main/install.sh 2>/dev/null || wget -qO- https://raw.githubusercontent.com/Skitaru/skitaru-panel/main/install.sh)
 ```
 
 > Requires **Debian 11/12/13** · Root access · Ports 3000 + game ports open
