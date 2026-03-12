@@ -16,7 +16,7 @@
 bash <(curl -fsSL https://raw.githubusercontent.com/Skitaru/skitaru-panel/main/install.sh 2>/dev/null || wget -qO- https://raw.githubusercontent.com/Skitaru/skitaru-panel/main/install.sh)
 ```
 
-> Requires **Debian 11/12/13** · Root access · Ports 3000 + game ports open
+> Requires **Debian 11/12/13** · Root access · Ports 8080 + game ports open
 
 ---
 
@@ -69,7 +69,7 @@ Upload any server JAR — modpacks, custom builds, whatever. Choose Java version
 - **OS:** Debian 11 (Bullseye) · Debian 12 (Bookworm) · Debian 13 (Trixie)
 - **RAM:** 1 GB minimum (+ RAM for each server)
 - **Disk:** 5 GB minimum
-- **Ports:** `3000` for the panel, plus one port per server (auto-assigned)
+- **Ports:** `8080` for the panel, plus one port per server (auto-assigned)
 - **Root access** for installation
 
 The installer handles everything else: Docker, Node.js 20, systemd service setup.
@@ -142,7 +142,7 @@ systemctl stop skitaru-panel
 
 ## 🔒 Security Notes
 
-- The panel runs on **port 3000** with no HTTPS by default. Put it behind a reverse proxy (nginx/caddy) with SSL for public access.
+- The panel runs on **port 8080** with no HTTPS by default. Put it behind a reverse proxy (nginx/caddy) with SSL for public access.
 - All API routes require a session token. Tokens expire after **12 hours**.
 - File uploads are limited to **500 MB** per file.
 - Passwords are hashed with HMAC-SHA256 — never stored in plaintext.
